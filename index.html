@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>GSLFotos — Publicar</title>
+<title>GSNFotos — Publicar</title>
 <link rel="manifest" href="manifest.json" />
 <style>
   @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap');
@@ -57,6 +57,13 @@
   .log { font-family:'DM Mono',monospace; font-size:11px; color:var(--text-muted); margin-top:10px; display:flex; flex-direction:column; gap:3px; }
   .log-line.ok { color:var(--success); }
   .log-line.err { color:var(--error); }
+  .modal-overlay { position:fixed; inset:0; background:#000000aa; display:flex; align-items:center; justify-content:center; z-index:500; padding:20px; }
+  .modal-overlay.hidden { display:none; }
+  .modal-box { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:24px 20px; max-width:340px; width:100%; text-align:center; }
+  .modal-icone { font-size:32px; margin-bottom:10px; }
+  .modal-titulo { font-size:16px; font-weight:600; margin-bottom:6px; }
+  .modal-mensagem { font-size:13px; color:var(--text-muted); line-height:1.5; margin-bottom:18px; }
+  .modal-btn { background:var(--accent-solid); border:none; color:white; font-size:14px; font-weight:600; padding:10px 24px; border-radius:var(--radius-sm); cursor:pointer; }
 </style>
 </head>
 <body>
@@ -71,7 +78,7 @@
 
   <div class="card" id="card-busca">
     <div class="field-label">Código do produto (SKU)</div>
-    <input type="text" id="sku-input" placeholder="Ex: CO00649" autocomplete="off" />
+    <input type="text" id="sku-input" placeholder="Ex: CO00649" autocomplete="off" onkeydown="if(event.key==='Enter') buscarProduto()" />
     <button class="btn" id="btn-buscar" style="margin-top:12px" onclick="buscarProduto()">Buscar produto</button>
   </div>
 
@@ -104,6 +111,15 @@
 
 </main>
 
+<div class="modal-overlay hidden" id="modal-overlay" onclick="if(event.target===this) fecharModal()">
+  <div class="modal-box">
+    <div class="modal-icone">⚠️</div>
+    <div class="modal-titulo" id="modal-titulo">Produto não encontrado</div>
+    <div class="modal-mensagem" id="modal-mensagem"></div>
+    <button class="modal-btn" onclick="fecharModal()">Entendi</button>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -127,7 +143,11 @@
       const data = await res.json();
 
       if (!data.bagy) {
-        throw new Error(data.erros?.join(' ') || 'Produto não encontrado na Bagy.');
+        // Filtra qualquer menção ao Bling — este frontend só
+        // trabalha com a Bagy, não faz sentido o usuário ver
+        // erro de uma plataforma que nem está em uso aqui.
+        const errosBagy = (data.erros || []).filter(e => !e.toLowerCase().includes('bling'));
+        throw new Error(errosBagy.join(' ') || 'Produto não encontrado na Bagy.');
       }
 
       skuAtual = sku;
@@ -153,11 +173,27 @@
       document.getElementById('card-log').style.display = 'none';
 
     } catch (e) {
-      showToast(e.message, 'error');
+      // Esconde qualquer resultado anterior — evita confusão se o
+      // usuário buscar um SKU errado depois de um SKU válido
+      document.getElementById('card-produto').style.display = 'none';
+      document.getElementById('card-upload').style.display = 'none';
+      document.getElementById('card-variacoes').style.display = 'none';
+      document.getElementById('btn-publicar').style.display = 'none';
+      mostrarModal('Produto não encontrado', e.message);
     } finally {
       btn.disabled = false;
       btn.textContent = 'Buscar produto';
     }
+  }
+
+  function mostrarModal(titulo, mensagem) {
+    document.getElementById('modal-titulo').textContent = titulo;
+    document.getElementById('modal-mensagem').textContent = mensagem;
+    document.getElementById('modal-overlay').classList.remove('hidden');
+  }
+
+  function fecharModal() {
+    document.getElementById('modal-overlay').classList.add('hidden');
   }
 
   function renderVariacoes() {
