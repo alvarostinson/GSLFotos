@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>GSNFotos — Publicar</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap');
+  :root {
+    --bg:#0f0f1a; --surface:#1a1a2e; --surface2:#22223a; --border:#2e2e4a;
+    --accent:#c084fc; --accent-solid:#7c3aed; --text:#e8e8f0; --text-muted:#7070a0;
+    --success:#34d399; --error:#f87171; --warning:#fbbf24; --radius:14px; --radius-sm:8px;
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--text); min-height:100dvh; }
+  header { padding:20px; display:flex; align-items:center; gap:12px; }
+  .logo { width:36px; height:36px; background:linear-gradient(135deg,var(--accent-solid),#a855f7); border-radius:10px; flex-shrink:0; }
+  header h1 { font-size:17px; font-weight:600; }
+  header span { font-size:12px; color:var(--text-muted); font-family:'DM Mono',monospace; }
+  main { padding:0 20px 24px; display:flex; flex-direction:column; gap:16px; max-width:480px; margin:0 auto; }
+  .card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:18px; }
+  .field-label { font-size:11px; font-weight:600; letter-spacing:0.8px; text-transform:uppercase; color:var(--text-muted); margin-bottom:8px; }
+  input[type="text"] { width:100%; background:var(--surface2); border:1.5px solid var(--border); border-radius:var(--radius-sm); color:var(--text); font-family:'DM Mono',monospace; font-size:18px; font-weight:500; letter-spacing:1px; padding:13px 14px; outline:none; text-transform:uppercase; }
+  input[type="text"]:focus { border-color:var(--accent); }
+  .btn { width:100%; background:linear-gradient(135deg,var(--accent-solid),#a855f7); border:none; border-radius:var(--radius); color:white; font-size:15px; font-weight:600; padding:14px; cursor:pointer; }
+  .btn:disabled { opacity:0.4; cursor:not-allowed; }
+  .produto-codigo { font-family:'DM Mono',monospace; font-size:13px; color:var(--accent); font-weight:600; letter-spacing:0.5px; margin-bottom:4px; }
+  .produto-nome { font-size:16px; font-weight:600; margin-bottom:2px; }
+  .produto-sub { font-size:12px; color:var(--text-muted); }
+  .foto-thumb .badge-capa { position:absolute; top:4px; left:4px; background:var(--accent-solid); color:white; font-size:9px; font-weight:600; padding:2px 6px; border-radius:6px; z-index:2; }
+  .plataforma-badges { display:flex; gap:6px; margin-top:8px; }
+  .badge { font-size:10px; font-weight:600; letter-spacing:0.5px; padding:3px 8px; border-radius:99px; text-transform:uppercase; }
+  .badge.ok { background:#34d39922; color:var(--success); }
+  .badge.erro { background:#f8717122; color:var(--error); }
+  .foto-pool { display:grid; grid-template-columns:repeat(auto-fill, minmax(72px, 1fr)); gap:10px; margin-top:14px; }
+  .foto-thumb { aspect-ratio:1; border-radius:10px; overflow:hidden; cursor:grab; border:1.5px solid var(--border); position:relative; transition:transform .15s, border-color .15s; }
+  .foto-thumb:hover { border-color:var(--accent); transform:scale(1.03); }
+  .foto-thumb img { width:100%; height:100%; object-fit:cover; display:block; }
+  .foto-thumb.dragging { opacity:0.3; }
+  .foto-thumb.usada { opacity:0.35; }
+  .foto-thumb.usada::after { content:'✓'; position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:#00000066; color:var(--success); font-size:20px; font-weight:700; }
+  .plataforma-secao { margin-bottom:20px; }
+  .plataforma-titulo { font-size:12px; font-weight:600; color:var(--accent); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:10px; }
+  .variacao-card { display:flex; align-items:center; gap:14px; background:var(--surface2); border:1.5px solid var(--border); border-radius:var(--radius); padding:12px; margin-bottom:10px; transition:border-color .15s, background .15s; }
+  .variacao-card.dragover { border-color:var(--accent); background:#7c3aed22; }
+  .variacao-slot { width:64px; height:64px; border-radius:10px; border:1.5px dashed var(--border); display:flex; align-items:center; justify-content:center; flex-shrink:0; overflow:hidden; font-size:22px; color:var(--text-muted); position:relative; }
+  .variacao-slot.filled { border-style:solid; border-color:var(--success); }
+  .variacao-slot img { width:100%; height:100%; object-fit:cover; display:block; }
+  .variacao-info { flex:1; min-width:0; }
+  .variacao-nome { font-size:14px; font-weight:600; }
+  .variacao-status { font-size:11px; color:var(--text-muted); margin-top:2px; }
+  .variacao-remover { background:none; border:none; color:var(--error); font-size:18px; cursor:pointer; padding:4px 8px; flex-shrink:0; opacity:0; transition:opacity .15s; }
+  .variacao-card:has(.filled) .variacao-remover { opacity:1; }
+  .dropzone { border:2px dashed var(--border); border-radius:var(--radius); padding:20px; text-align:center; cursor:pointer; position:relative; }
+  .dropzone input { position:absolute; inset:0; opacity:0; cursor:pointer; }
+  .toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(80px); background:var(--surface2); border:1px solid var(--border); border-radius:var(--radius-sm); padding:12px 18px; font-size:13px; font-weight:500; transition:transform .3s; z-index:200; max-width:90vw; }
+  .toast.show { transform:translateX(-50%) translateY(0); }
+  .toast.success { border-color:var(--success); color:var(--success); }
+  .toast.error { border-color:var(--error); color:var(--error); }
+  .log { font-family:'DM Mono',monospace; font-size:11px; color:var(--text-muted); margin-top:10px; display:flex; flex-direction:column; gap:3px; }
+  .log-line.ok { color:var(--success); }
+  .log-line.err { color:var(--error); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo"></div>
+  <div><h1>GSNFotos</h1><span>Publicar — Bling / Bagy</span></div>
+</header>
+
+<main>
+
+  <div class="card" id="card-busca">
+    <div class="field-label">Código do produto (SKU)</div>
+    <input type="text" id="sku-input" placeholder="Ex: CO00649" autocomplete="off" />
+    <button class="btn" id="btn-buscar" style="margin-top:12px" onclick="buscarProduto()">Buscar produto</button>
+  </div>
+
+  <div class="card" id="card-produto" style="display:none;">
+    <div class="produto-codigo" id="produto-codigo"></div>
+    <div class="produto-nome" id="produto-nome"></div>
+    <div class="produto-sub" id="produto-sub"></div>
+    <div class="plataforma-badges" id="plataforma-badges"></div>
+  </div>
+
+  <div class="card" id="card-upload" style="display:none;">
+    <div class="field-label">1. Envie todas as fotos do produto</div>
+    <div class="dropzone">
+      <input type="file" id="file-input" accept="image/*" multiple />
+      <span style="font-size:13px;">Selecionar fotos da galeria (pode ser várias de uma vez)</span>
+    </div>
+    <div class="foto-pool" id="foto-pool"></div>
+  </div>
+
+  <div class="card" id="card-variacoes" style="display:none;">
+    <div class="field-label">2. Arraste cada foto para a variação certa</div>
+    <div id="variacoes-bling" class="plataforma-secao" style="display:none;">
+      <div class="plataforma-titulo">Bling</div>
+      <div id="variacoes-bling-list"></div>
+    </div>
+    <div id="variacoes-bagy" class="plataforma-secao" style="display:none;">
+      <div class="plataforma-titulo">Bagy</div>
+      <div id="variacoes-bagy-list"></div>
+    </div>
+  </div>
+
+  <button class="btn" id="btn-publicar" style="display:none;" onclick="publicar()">Publicar</button>
+
+  <div class="card" id="card-log" style="display:none;">
+    <div class="field-label">Resultado</div>
+    <div class="log" id="log"></div>
+  </div>
+
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  // Aponta para o backend v2.0 (troque pela URL do Render quando for testar em produção)
+  const BACKEND_URL = 'https://gsnfotos-v3.onrender.com';
+
+  let skuAtual = null;
+  let dadosBling = null; // { produto, variacoes: [{id, codigo, nome}] }
+  let dadosBagy = null;  // { produto, variacoes: [...] }
+  let vinculosBling = {}; // variacao_id -> foto_url
+  let vinculosBagy = {};
+
+  async function buscarProduto() {
+    const sku = document.getElementById('sku-input').value.trim();
+    if (!sku) return;
+
+    const btn = document.getElementById('btn-buscar');
+    btn.disabled = true;
+    btn.textContent = 'Buscando...';
+
+    try {
+      const res = await fetch(`${BACKEND_URL}/produto/${encodeURIComponent(sku)}`);
+      const data = await res.json();
+
+      if (!data.bagy && !data.bling) {
+        throw new Error(data.erros?.join(' ') || 'Produto não encontrado em nenhuma plataforma.');
+      }
+
+      skuAtual = sku;
+      dadosBling = data.bling;
+      dadosBagy = data.bagy;
+      vinculosBling = {};
+      vinculosBagy = {};
+      document.getElementById('foto-pool').innerHTML = '';
+      contadorFoto = 0;
+
+      const codigo = dadosBling?.produto?.codigo || dadosBagy?.produto?.reference || sku;
+      const nome = dadosBling?.produto?.nome || dadosBagy?.produto?.name || sku;
+      document.getElementById('produto-codigo').textContent = codigo.toUpperCase();
+      document.getElementById('produto-nome').textContent = nome;
+
+      const totalVariacoes = (dadosBling?.variacoes?.length || 0) + (dadosBagy?.variacoes?.length || 0);
+      document.getElementById('produto-sub').textContent = totalVariacoes > 0
+        ? `${totalVariacoes} variação(ões) ao todo`
+        : 'Produto simples (sem variações) — foto vai direto nele';
+
+      renderBadges(data);
+      renderVariacoes();
+
+      document.getElementById('card-produto').style.display = 'block';
+      document.getElementById('card-upload').style.display = 'block';
+      document.getElementById('card-variacoes').style.display = 'block';
+      document.getElementById('btn-publicar').style.display = 'block';
+
+    } catch (e) {
+      showToast(e.message, 'error');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Buscar produto';
+    }
+  }
+
+  function renderBadges(data) {
+    const container = document.getElementById('plataforma-badges');
+    container.innerHTML = '';
+    container.appendChild(criarBadge('Bling', !!data.bling));
+    container.appendChild(criarBadge('Bagy', !!data.bagy));
+  }
+
+  function criarBadge(nome, encontrado) {
+    const span = document.createElement('span');
+    span.className = `badge ${encontrado ? 'ok' : 'erro'}`;
+    span.textContent = encontrado ? `${nome} ✓` : `${nome} ✗`;
+    return span;
+  }
+
+  function renderVariacoes() {
+    renderVariacoesPlataforma('bling', dadosBling, 'variacoes-bling', 'variacoes-bling-list', vinculosBling);
+    renderVariacoesPlataforma('bagy', dadosBagy, 'variacoes-bagy', 'variacoes-bagy-list', vinculosBagy);
+  }
+
+  function renderVariacoesPlataforma(plataforma, dados, idSecao, idLista, vinculos) {
+    const secao = document.getElementById(idSecao);
+    const lista = document.getElementById(idLista);
+    lista.innerHTML = '';
+
+    if (!dados) {
+      secao.style.display = 'none';
+      return;
+    }
+    secao.style.display = 'block';
+
+    const alvos = dados.variacoes?.length
+      ? dados.variacoes
+      : [{ id: dados.produto.id, codigo: dados.produto.codigo || dados.produto.name, nome: 'Produto (sem variação)' }];
+
+    alvos.forEach(v => {
+      const row = document.createElement('div');
+      row.className = 'variacao-card';
+      row.dataset.variacaoId = v.id;
+
+      // Se já existe uma foto publicada (vinda da Bagy, por
+      // exemplo), mostra ela de cara no slot — assim quem for
+      // trocar sabe exatamente o que já está lá antes de arrastar
+      // uma nova.
+      const temFotoExistente = !!v.fotoAtual;
+      const slotConteudo = temFotoExistente
+        ? `<img src="${v.fotoAtual}" />`
+        : '＋';
+      const statusInicial = temFotoExistente
+        ? 'Foto atual (arraste para substituir)'
+        : 'Arraste uma foto aqui';
+
+      row.innerHTML = `
+        <div class="variacao-slot ${temFotoExistente ? 'filled' : ''}" id="slot-${plataforma}-${v.id}">${slotConteudo}</div>
+        <div class="variacao-info">
+          <div class="variacao-nome">${v.nome || v.codigo}</div>
+          <div class="variacao-status" id="status-${plataforma}-${v.id}">${statusInicial}</div>
+        </div>
+        <button class="variacao-remover" id="remover-${plataforma}-${v.id}" onclick="removerFotoDaVariacao('${plataforma}', '${v.id}')" title="Remover">✕</button>
+      `;
+      row.addEventListener('dragover', e => { e.preventDefault(); row.classList.add('dragover'); });
+      row.addEventListener('dragleave', () => row.classList.remove('dragover'));
+      row.addEventListener('drop', e => {
+        e.preventDefault();
+        row.classList.remove('dragover');
+        const fotoUrl = e.dataTransfer.getData('text/foto-url');
+        const fotoImg = e.dataTransfer.getData('text/foto-img');
+        const fotoId = e.dataTransfer.getData('text/foto-id');
+        if (!fotoUrl) return;
+        vinculos[v.id] = fotoUrl;
+        const slot = document.getElementById(`slot-${plataforma}-${v.id}`);
+        slot.classList.add('filled');
+        slot.innerHTML = `<img src="${fotoImg}" />`;
+        document.getElementById(`status-${plataforma}-${v.id}`).textContent = 'Foto atribuída';
+        marcarFotoComoUsada(fotoId);
+      });
+      lista.appendChild(row);
+    });
+  }
+
+  function removerFotoDaVariacao(plataforma, variacaoId) {
+    const vinculos = plataforma === 'bling' ? vinculosBling : vinculosBagy;
+    delete vinculos[variacaoId];
+    const slot = document.getElementById(`slot-${plataforma}-${variacaoId}`);
+    slot.classList.remove('filled');
+    slot.innerHTML = '＋';
+    document.getElementById(`status-${plataforma}-${variacaoId}`).textContent = 'Arraste uma foto aqui';
+    atualizarUsoDasFotos();
+  }
+
+  function marcarFotoComoUsada(fotoId) {
+    if (!fotoId) return;
+    const el = document.getElementById(`foto-${fotoId}`);
+    if (el) el.classList.add('usada');
+  }
+
+  // Recalcula quais fotos da galeria ainda estão "livres" após uma remoção —
+  // uma mesma foto pode ser reaproveitada em mais de uma variação, então só
+  // marcamos como usada se ela sumir de todos os vínculos ao mesmo tempo.
+  function atualizarUsoDasFotos() {
+    const todasEmUso = new Set([...Object.values(vinculosBling), ...Object.values(vinculosBagy)]);
+    document.querySelectorAll('.foto-thumb').forEach(el => {
+      const url = el.dataset.url;
+      el.classList.toggle('usada', todasEmUso.has(url));
+    });
+  }
+
+  document.getElementById('file-input').addEventListener('change', async function(e) {
+    const files = Array.from(e.target.files);
+    if (!files.length || !skuAtual) return;
+
+    const form = new FormData();
+    form.append('sku', skuAtual);
+    files.forEach(f => form.append('fotos', f));
+
+    showToast('Enviando fotos...', 'success');
+
+    try {
+      const res = await fetch(`${BACKEND_URL}/upload-temporario`, { method: 'POST', body: form });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+
+      data.fotos.forEach((foto, i) => {
+        const localUrl = URL.createObjectURL(files[i]);
+        adicionarFotoNoPool(foto.url, localUrl);
+      });
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+  });
+
+  let contadorFoto = 0;
+
+  function adicionarFotoNoPool(urlPublica, urlLocal) {
+    const fotoId = `f${++contadorFoto}`;
+    const pool = document.getElementById('foto-pool');
+    const ehPrimeira = pool.children.length === 0;
+    const thumb = document.createElement('div');
+    thumb.className = 'foto-thumb';
+    thumb.id = `foto-${fotoId}`;
+    thumb.dataset.url = urlPublica;
+    thumb.draggable = true;
+    thumb.innerHTML = `${ehPrimeira ? '<span class="badge-capa">capa</span>' : ''}<img src="${urlLocal}" />`;
+    thumb.addEventListener('dragstart', e => {
+      thumb.classList.add('dragging');
+      e.dataTransfer.setData('text/foto-url', urlPublica);
+      e.dataTransfer.setData('text/foto-img', urlLocal);
+      e.dataTransfer.setData('text/foto-id', fotoId);
+    });
+    thumb.addEventListener('dragend', () => thumb.classList.remove('dragging'));
+    pool.appendChild(thumb);
+  }
+
+  async function publicar() {
+    const bling = Object.entries(vinculosBling).map(([variacao_id, foto_url]) => ({ variacao_id, foto_url }));
+    // A Bagy precisa do ID do produto junto com o color_id (a
+    // variação em si não tem um ID isolado do lado da API deles)
+    const bagy = Object.entries(vinculosBagy).map(([color_id, foto_url]) => ({
+      produto_id: dadosBagy?.produto?.id,
+      color_id,
+      foto_url,
+    }));
+
+    if (!bling.length && !bagy.length) {
+      showToast('Vincule ao menos uma foto antes de publicar.', 'error');
+      return;
+    }
+
+    const btn = document.getElementById('btn-publicar');
+    btn.disabled = true;
+    btn.textContent = 'Publicando...';
+
+    try {
+      const res = await fetch(`${BACKEND_URL}/publicar`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bling, bagy }),
+      });
+      const data = await res.json();
+
+      mostrarLog(data.resultados);
+      showToast('Publicação concluída — veja o resultado abaixo', 'success');
+
+    } catch (e) {
+      showToast(e.message, 'error');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Publicar';
+    }
+  }
+
+  function mostrarLog(resultados) {
+    const card = document.getElementById('card-log');
+    const log = document.getElementById('log');
+    log.innerHTML = '';
+    card.style.display = 'block';
+
+    ['bling', 'bagy'].forEach(plataforma => {
+      (resultados[plataforma] || []).forEach(r => {
+        const linha = document.createElement('div');
+        const ok = !r.error;
+        linha.className = `log-line ${ok ? 'ok' : 'err'}`;
+        linha.textContent = ok
+          ? `✓ ${plataforma}: publicado com sucesso`
+          : `✗ ${plataforma}: ${r.error}`;
+        log.appendChild(linha);
+      });
+    });
+  }
+
+  let toastTimer;
+  function showToast(msg, type) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = `toast show ${type}`;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 4000);
+  }
+</script>
+
+</body>
+</html>
