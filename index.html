@@ -259,7 +259,7 @@
         <button class="variacao-remover" onclick="removerFotoDaVariacao('${v.id}')" title="Remover">✕</button>
       `;
       if (temFotoExistente) {
-        document.getElementById(`slot-${v.id}`).querySelector('img').addEventListener('click', () => abrirLightbox(v.fotoAtual));
+        row.querySelector('.variacao-slot img').addEventListener('click', () => abrirLightbox(v.fotoAtual));
       }
       row.addEventListener('dragover', e => { e.preventDefault(); row.classList.add('dragover'); });
       row.addEventListener('dragleave', () => row.classList.remove('dragover'));
