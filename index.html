@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>GSLFotos</title>
+<title>GSNFotos — Publicar</title>
 <link rel="manifest" href="manifest.json" />
 <style>
   @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap');
@@ -28,6 +28,8 @@
   input[type="text"]:focus { border-color:var(--accent); }
   .btn { width:100%; background:linear-gradient(135deg,var(--accent-solid),#a855f7); border:none; border-radius:var(--radius); color:white; font-size:15px; font-weight:600; padding:14px; cursor:pointer; }
   .btn:disabled { opacity:0.4; cursor:not-allowed; }
+  .chip-historico { background:var(--surface2); border:1px solid var(--border); color:var(--text-muted); font-family:'DM Mono',monospace; font-size:11px; padding:4px 10px; border-radius:99px; cursor:pointer; }
+  .chip-historico:hover { border-color:var(--accent); color:var(--accent); }
   .produto-codigo { font-family:'DM Mono',monospace; font-size:13px; color:var(--accent); font-weight:600; letter-spacing:0.5px; margin-bottom:4px; }
   .produto-nome { font-size:16px; font-weight:600; margin-bottom:2px; }
   .produto-sub { font-size:12px; color:var(--text-muted); }
@@ -39,6 +41,9 @@
   .foto-thumb.dragging { opacity:0.3; }
   .foto-thumb.usada { opacity:0.35; }
   .foto-thumb.usada::after { content:'✓'; position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:#00000066; color:var(--success); font-size:20px; font-weight:700; }
+  .foto-thumb.enviando img { opacity:0.4; }
+  .spinner-overlay { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:20px; animation:girar 1s linear infinite; }
+  @keyframes girar { from{transform:rotate(0deg);} to{transform:rotate(360deg);} }
   .foto-thumb .badge-capa { position:absolute; top:4px; left:4px; background:var(--accent-solid); color:white; font-size:9px; font-weight:600; padding:2px 6px; border-radius:6px; z-index:2; }
   .variacao-card { display:flex; align-items:center; gap:14px; background:var(--surface2); border:1.5px solid var(--border); border-radius:var(--radius); padding:12px; margin-bottom:10px; transition:border-color .15s, background .15s; }
   .variacao-card.dragover { border-color:var(--accent); background:#7c3aed22; }
@@ -95,6 +100,7 @@
   <div class="card" id="card-busca">
     <div class="field-label">🏷️ Código do produto (SKU)</div>
     <input type="text" id="sku-input" placeholder="Ex: CO00649" autocomplete="off" onkeydown="if(event.key==='Enter') buscarProduto()" />
+    <div id="historico-skus" style="display:flex; gap:6px; flex-wrap:wrap; margin-top:8px;"></div>
     <button class="btn" id="btn-buscar" style="margin-top:12px" onclick="buscarProduto()">🔍 Buscar produto</button>
   </div>
 
@@ -153,6 +159,37 @@
   let vinculos = {};      // color_id -> foto_url (nova, escolhida pelo usuário)
   let fotosExistentesId = {}; // color_id -> id da imagem já cadastrada na Bagy (se houver)
   let contadorFoto = 0;
+  const cacheDeBuscas = new Map(); // sku -> resposta já buscada nesta sessão
+
+  // Histórico dos últimos SKUs buscados, salvo entre sessões
+  // (localStorage) — facilita revisitar o mesmo produto sem
+  // redigitar o código toda vez.
+  const LIMITE_HISTORICO = 5;
+  function carregarHistorico() {
+    try { return JSON.parse(localStorage.getItem('gsnfotos_historico') || '[]'); }
+    catch { return []; }
+  }
+  function salvarNoHistorico(sku) {
+    let historico = carregarHistorico().filter(s => s !== sku);
+    historico.unshift(sku);
+    historico = historico.slice(0, LIMITE_HISTORICO);
+    localStorage.setItem('gsnfotos_historico', JSON.stringify(historico));
+    renderHistorico();
+  }
+  function renderHistorico() {
+    const container = document.getElementById('historico-skus');
+    const historico = carregarHistorico();
+    container.innerHTML = historico.map(sku =>
+      `<span class="chip-historico" onclick="document.getElementById('sku-input').value='${sku}'; buscarProduto();">${sku}</span>`
+    ).join('');
+  }
+  renderHistorico();
+
+  // Aquece o backend assim que a página abre — se o Render estiver
+  // "dormindo" (plano gratuito), ele começa a acordar enquanto o
+  // usuário ainda está digitando o SKU, ganhando alguns segundos
+  // antes da busca de verdade acontecer.
+  fetch(`${BACKEND_URL}/health`).catch(() => {});
 
   async function buscarProduto() {
     const sku = document.getElementById('sku-input').value.trim();
@@ -163,8 +200,17 @@
     btn.textContent = 'Buscando...';
 
     try {
-      const res = await fetch(`${BACKEND_URL}/produto/${encodeURIComponent(sku)}`);
-      const data = await res.json();
+      let data;
+      if (cacheDeBuscas.has(sku)) {
+        // Já buscamos esse SKU nesta sessão — evita nova chamada
+        // à Bagy. Esse cache é limpo automaticamente depois de
+        // publicar uma foto nesse SKU (ver função publicar()).
+        data = cacheDeBuscas.get(sku);
+      } else {
+        const res = await fetch(`${BACKEND_URL}/produto/${encodeURIComponent(sku)}`);
+        data = await res.json();
+        if (data.bagy) cacheDeBuscas.set(sku, data);
+      }
 
       if (!data.bagy) {
         // Filtra qualquer menção ao Bling — este frontend só
@@ -180,6 +226,7 @@
       fotosExistentesId = {};
       document.getElementById('foto-pool').innerHTML = '';
       contadorFoto = 0;
+      salvarNoHistorico(sku.toUpperCase());
 
       document.getElementById('produto-codigo').textContent = (dadosBagy.produto.codigo || sku).toUpperCase();
       document.getElementById('produto-nome').textContent = dadosBagy.produto.nome;
@@ -270,8 +317,9 @@
         const fotoImg = e.dataTransfer.getData('text/foto-img');
         const fotoId = e.dataTransfer.getData('text/foto-id');
         if (!fotoUrl) return;
-        vinculos[v.id] = fotoUrl;
+
         const slot = document.getElementById(`slot-${v.id}`);
+        vinculos[v.id] = fotoUrl;
         slot.classList.add('filled');
         slot.innerHTML = `<img src="${fotoImg}" />`;
         slot.querySelector('img').addEventListener('click', () => abrirLightbox(fotoImg));
@@ -308,48 +356,80 @@
     const files = Array.from(e.target.files);
     if (!files.length || !skuAtual) return;
 
+    // Mostra a miniatura de cada foto IMEDIATAMENTE (com um
+    // indicador de "enviando"), sem esperar o upload terminar —
+    // dá feedback visual instantâneo em vez de uma pausa em
+    // branco até o lote inteiro voltar do servidor.
+    const thumbsPendentes = files.map(file => {
+      const localUrl = URL.createObjectURL(file);
+      return adicionarFotoNoPool(null, localUrl, true); // true = pendente
+    });
+
     const form = new FormData();
     form.append('sku', skuAtual);
     files.forEach(f => form.append('fotos', f));
-
-    showToast('Enviando fotos...', 'success');
 
     try {
       const res = await fetch(`${BACKEND_URL}/upload-temporario`, { method: 'POST', body: form });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
 
+      // Atualiza cada miniatura pendente com a URL pública real,
+      // removendo o indicador de "enviando"
       data.fotos.forEach((foto, i) => {
-        const localUrl = URL.createObjectURL(files[i]);
-        adicionarFotoNoPool(foto.url, localUrl);
+        const thumb = thumbsPendentes[i];
+        if (thumb) confirmarUploadDaMiniatura(thumb, foto.url);
       });
     } catch (err) {
+      // Remove as miniaturas que falharam, para não deixar "presas"
+      thumbsPendentes.forEach(thumb => thumb?.remove());
       showToast(err.message, 'error');
     }
   });
 
-  function adicionarFotoNoPool(urlPublica, urlLocal) {
+  function adicionarFotoNoPool(urlPublica, urlLocal, pendente = false) {
     const fotoId = `f${++contadorFoto}`;
     const pool = document.getElementById('foto-pool');
     const ehPrimeira = pool.children.length === 0;
     const thumb = document.createElement('div');
-    thumb.className = 'foto-thumb';
+    thumb.className = 'foto-thumb' + (pendente ? ' enviando' : '');
     thumb.id = `foto-${fotoId}`;
-    thumb.dataset.url = urlPublica;
-    thumb.draggable = true;
-    thumb.innerHTML = `${ehPrimeira ? '<span class="badge-capa">capa</span>' : ''}<img src="${urlLocal}" />`;
+    thumb.dataset.url = urlPublica || '';
+    // Enquanto pendente, não pode ser arrastada — evita vincular
+    // uma foto que ainda não terminou de subir de verdade.
+    thumb.draggable = !pendente;
+    thumb.innerHTML = `
+      ${ehPrimeira ? '<span class="badge-capa">capa</span>' : ''}
+      <img src="${urlLocal}" />
+      ${pendente ? '<div class="spinner-overlay">⏳</div>' : ''}
+    `;
     thumb.querySelector('img').addEventListener('click', e => {
       e.stopPropagation();
-      abrirLightbox(urlLocal);
+      if (!pendente) abrirLightbox(urlLocal);
     });
     thumb.addEventListener('dragstart', e => {
       thumb.classList.add('dragging');
-      e.dataTransfer.setData('text/foto-url', urlPublica);
+      e.dataTransfer.setData('text/foto-url', thumb.dataset.url);
       e.dataTransfer.setData('text/foto-img', urlLocal);
       e.dataTransfer.setData('text/foto-id', fotoId);
     });
     thumb.addEventListener('dragend', () => thumb.classList.remove('dragging'));
     pool.appendChild(thumb);
+    return thumb;
+  }
+
+  // Chamada quando o upload de uma miniatura pendente termina —
+  // remove o indicador de "enviando" e libera o drag-and-drop.
+  function confirmarUploadDaMiniatura(thumb, urlPublica) {
+    thumb.dataset.url = urlPublica;
+    thumb.draggable = true;
+    thumb.classList.remove('enviando');
+    const overlay = thumb.querySelector('.spinner-overlay');
+    if (overlay) overlay.remove();
+    thumb.querySelector('img').addEventListener('click', e => {
+      e.stopPropagation();
+      abrirLightbox(thumb.querySelector('img').src);
+    });
   }
 
   async function publicar() {
@@ -385,6 +465,9 @@
 
       mostrarLog(data.resultados?.bagy || []);
       showToast('Publicação concluída — veja o resultado abaixo', 'success');
+      // Invalida o cache desse SKU — a próxima busca deve trazer
+      // os dados atualizados (novas fotos), não os antigos salvos.
+      cacheDeBuscas.delete(skuAtual);
 
     } catch (e) {
       showToast(e.message, 'error');
@@ -417,6 +500,12 @@
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => t.classList.remove('show'), 4000);
   }
+  // Esc fecha o lightbox ou o modal, o que estiver aberto
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Escape') return;
+    if (!document.getElementById('lightbox-overlay').classList.contains('hidden')) fecharLightbox();
+    else if (!document.getElementById('modal-overlay').classList.contains('hidden')) fecharModal();
+  });
 </script>
 
 </body>
