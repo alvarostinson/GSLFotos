@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>GSLFotos — Publicar</title>
+<title>GSNFotos — Publicar</title>
 <link rel="manifest" href="manifest.json" />
 <style>
   @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap');
@@ -108,7 +108,7 @@
       <polyline points="21 15 16 10 5 21"/>
     </svg>
   </div>
-  <div><h1>GSLFotos</h1><span>Publicar na Bagy</span></div>
+  <div><h1>GSNFotos</h1><span>Publicar na Bagy</span></div>
   <a href="https://drive.google.com/drive/folders/1VVVFN0QXS_lClJzdlWFVS0FO1zFP49bx?usp=sharing" target="_blank" rel="noopener" class="btn-drive">📁 Drive</a>
 </header>
 
@@ -372,7 +372,10 @@
   }
 
   function selecionarFotoParaVariacao(variacaoId, fotoUrl, fotoImg, fotoId) {
-    if (variacaoId === null || variacaoId === undefined) return;
+    // variacaoId pode ser null de propósito (produto sem variação,
+    // ver comentário em publicar()) — só bloqueia undefined, que
+    // indicaria uma chamada indevida da função.
+    if (variacaoId === undefined) return;
 
     const slot = document.getElementById(`slot-${variacaoId}`);
     const status = document.getElementById(`status-${variacaoId}`);
@@ -416,7 +419,12 @@
     // listeners de evento se sobrescrevendo).
     const agrupadas = new Map();
     alvosBrutos.forEach(v => {
-      const chave = v.id ?? `sem-id-${v.codigo}`;
+      // Normaliza o id como texto: se a Bagy devolver o mesmo
+      // color_id às vezes como número (123) e às vezes como texto
+      // ("123"), sem essa normalização o Map trata como duas
+      // variações diferentes — cada uma vira uma publicação
+      // separada e a Bagy acaba com 2 fotos na mesma variação.
+      const chave = (v.id !== null && v.id !== undefined) ? String(v.id) : `sem-id-${v.codigo}`;
       if (!agrupadas.has(chave)) {
         agrupadas.set(chave, { ...v, codigosAgrupados: [v.codigo] });
       } else {
@@ -479,7 +487,10 @@
         vinculos[v.id] = fotoUrl;
         slot.classList.add('filled');
         slot.innerHTML = `<img src="${fotoImg}" />`;
-        slot.querySelector('img').addEventListener('click', () => abrirLightbox(fotoImg));
+        slot.querySelector('img').addEventListener('click', e => {
+          e.stopPropagation();
+          abrirLightbox(fotoImg);
+        });
         document.getElementById(`status-${v.id}`).textContent = 'Foto atribuída';
         marcarFotoComoUsada(fotoId);
       });
@@ -589,13 +600,26 @@
     });
   }
 
+  let publicandoAgora = false; // trava contra clique duplo/duplo disparo do evento
+
   async function publicar() {
+    // Se já tem uma publicação em andamento, ignora esse novo
+    // disparo — evita que a mesma variação seja enviada 2x pra
+    // Bagy (o que aparecia lá como foto duplicada).
+    if (publicandoAgora) return;
+    publicandoAgora = true;
+
     // A Bagy precisa do ID do produto junto com o color_id (a
     // variação em si não tem um ID isolado do lado da API deles)
     // Quando a variação é "id: null" (produto simples, sem cor),
     // o JS transforma isso na chave de string "null" dentro do
     // objeto — convertemos de volta para null de verdade aqui,
     // senão o backend recebe a string "null" por engano.
+    //
+    // Object.entries(vinculos) já garante 1 entrada por color_id
+    // (chave de objeto é única por definição) — então se ainda
+    // assim aparecer duplicidade na Bagy, ela não vem daqui; ver
+    // trava "publicandoAgora" acima e o "finally" abaixo.
     const bagy = Object.entries(vinculos).map(([color_id, foto_url]) => {
       const idReal = color_id === 'null' ? null : color_id;
       // A ÚLTIMA variação da lista sempre vira a capa (position 1)
@@ -644,6 +668,7 @@
     } finally {
       btn.disabled = false;
       btn.textContent = '🚀 Publicar na Bagy';
+      publicandoAgora = false;
     }
   }
 
