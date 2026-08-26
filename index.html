@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>GSLFotos</title>
+<title>GSNFotos — Publicar</title>
 <link rel="manifest" href="manifest.json" />
 <style>
   @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap');
@@ -91,7 +91,7 @@
       <polyline points="21 15 16 10 5 21"/>
     </svg>
   </div>
-  <div><h1>GSLFotos</h1><span>Versão de teste</span></div>
+  <div><h1>GSNFotos</h1><span>Publicar na Bagy</span></div>
   <a href="https://drive.google.com/drive/folders/1VVVFN0QXS_lClJzdlWFVS0FO1zFP49bx?usp=sharing" target="_blank" rel="noopener" class="btn-drive">📁 Drive</a>
 </header>
 
@@ -154,10 +154,21 @@
 <script>
   const BACKEND_URL = 'https://gsnfotos-v3.onrender.com';
 
+  // Captura qualquer erro JS não tratado e mostra no modal — sem
+  // isso, um erro "silencioso" só aparece no console (que a
+  // maioria das pessoas não abre), dificultando saber o que houve.
+  window.addEventListener('error', e => {
+    mostrarModal('Erro inesperado', (e.message || 'Erro desconhecido') + ' (linha ' + e.lineno + ')');
+  });
+  window.addEventListener('unhandledrejection', e => {
+    mostrarModal('Erro inesperado', e.reason?.message || String(e.reason));
+  });
+
   let skuAtual = null;
   let dadosBagy = null;   // { produto: {id, nome, codigo}, variacoes: [{id, codigo, nome, fotoAtual}] }
   let vinculos = {};      // color_id -> foto_url (nova, escolhida pelo usuário)
   let fotosExistentesId = {}; // color_id -> id da imagem já cadastrada na Bagy (se houver)
+  let ordemVariacoesAtual = []; // ordem de exibição das variações — usada para decidir qual vira "capa"
   let contadorFoto = 0;
   const cacheDeBuscas = new Map(); // sku -> resposta já buscada nesta sessão
 
@@ -281,14 +292,39 @@
     const lista = document.getElementById('variacoes-list');
     lista.innerHTML = '';
 
-    const alvos = dadosBagy.variacoes?.length
+    const alvosBrutos = dadosBagy.variacoes?.length
       ? dadosBagy.variacoes
       : [{ id: dadosBagy.produto.id, codigo: dadosBagy.produto.codigo, nome: 'Produto (sem variação)' }];
+
+    // Agrupa variações que compartilham o mesmo "id" (color_id).
+    // Isso acontece com anéis (Prata 17, Prata 18, Prata 19 — mesma
+    // cor, tamanhos diferentes) que usam a mesma foto. Sem agrupar,
+    // cada uma viraria um elemento HTML com ID duplicado, causando
+    // comportamento errático (fotos indo pro lugar errado,
+    // listeners de evento se sobrescrevendo).
+    const agrupadas = new Map();
+    alvosBrutos.forEach(v => {
+      const chave = v.id ?? `sem-id-${v.codigo}`;
+      if (!agrupadas.has(chave)) {
+        agrupadas.set(chave, { ...v, codigosAgrupados: [v.codigo] });
+      } else {
+        agrupadas.get(chave).codigosAgrupados.push(v.codigo);
+      }
+    });
+    const alvos = Array.from(agrupadas.values());
+    ordemVariacoesAtual = alvos.map(v => v.id);
 
     alvos.forEach(v => {
       const row = document.createElement('div');
       row.className = 'variacao-card';
       row.dataset.variacaoId = v.id;
+
+      // Se a variação representa mais de um tamanho/código (ex:
+      // anéis agrupados), mostra isso no nome, pra ficar claro
+      // que uma foto só serve pra todos eles.
+      const nomeExibido = v.codigosAgrupados.length > 1
+        ? `${v.nome} (${v.codigosAgrupados.length} tamanhos)`
+        : v.nome;
 
       const temFotoExistente = !!v.fotoAtual;
       if (v.fotoAtualId) fotosExistentesId[v.id] = v.fotoAtualId;
@@ -300,7 +336,7 @@
       row.innerHTML = `
         <div class="variacao-slot ${temFotoExistente ? 'filled' : ''}" id="slot-${v.id}">${slotConteudo}</div>
         <div class="variacao-info">
-          <div class="variacao-nome">${v.nome || v.codigo}</div>
+          <div class="variacao-nome">${nomeExibido || v.codigo}</div>
           <div class="variacao-status" id="status-${v.id}">${statusInicial}</div>
         </div>
         <button class="variacao-remover" onclick="removerFotoDaVariacao('${v.id}')" title="Remover">✕</button>
@@ -439,12 +475,25 @@
     // o JS transforma isso na chave de string "null" dentro do
     // objeto — convertemos de volta para null de verdade aqui,
     // senão o backend recebe a string "null" por engano.
-    const bagy = Object.entries(vinculos).map(([color_id, foto_url]) => ({
-      produto_id: dadosBagy?.produto?.id,
-      color_id: color_id === 'null' ? null : color_id,
-      foto_url,
-      imagem_existente_id: fotosExistentesId[color_id] || null,
-    }));
+    const bagy = Object.entries(vinculos).map(([color_id, foto_url]) => {
+      const idReal = color_id === 'null' ? null : color_id;
+      // A ÚLTIMA variação da lista sempre vira a capa (position 1)
+      // — isso garante uma ordem previsível mesmo com as
+      // publicações rodando em paralelo (não depende de "quem
+      // termina primeiro").
+      const indiceNaLista = ordemVariacoesAtual.findIndex(id => String(id) === String(idReal));
+      const posicao = indiceNaLista === -1
+        ? null
+        : ordemVariacoesAtual.length - indiceNaLista;
+
+      return {
+        produto_id: dadosBagy?.produto?.id,
+        color_id: idReal,
+        foto_url,
+        imagem_existente_id: fotosExistentesId[color_id] || null,
+        posicao,
+      };
+    });
 
     if (!bagy.length) {
       showToast('Vincule ao menos uma foto antes de publicar.', 'error');
