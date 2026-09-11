@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>GSLFotos — Publicar</title>
+<title>GSLFotos</title>
 <link rel="manifest" href="manifest.json" />
 <style>
   @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap');
@@ -180,7 +180,7 @@
 <div class="toast" id="toast"></div>
 
 <script>
-  const BACKEND_URL = 'https://gsnfotos-v3.onrender.com';
+  const BACKEND_URL = 'https://GSLFotos-v3.onrender.com';
 
   // Captura qualquer erro JS não tratado e mostra no modal — sem
   // isso, um erro "silencioso" só aparece no console (que a
@@ -195,7 +195,8 @@
   let skuAtual = null;
   let dadosBagy = null;   // { produto: {id, nome, codigo}, variacoes: [{id, codigo, nome, fotoAtual}] }
   let vinculos = {};      // color_id -> foto_url (nova, escolhida pelo usuário)
-  let fotosExistentesId = {}; // color_id -> id da imagem já cadastrada na Bagy (se houver)
+  let fotosExistentesId = {}; // color_id -> id da imagem já cadastrada na Bagy (se houver) — mantido para exibição
+  let fotosExistentesIds = {}; // color_id -> [ids] de TODAS as imagens já cadastradas na Bagy (usado na limpeza ao publicar)
   let ordemVariacoesAtual = []; // ordem de exibição das variações — usada para decidir qual vira "capa"
   let contadorFoto = 0;
   const cacheDeBuscas = new Map(); // sku -> resposta já buscada nesta sessão
@@ -205,14 +206,14 @@
   // redigitar o código toda vez.
   const LIMITE_HISTORICO = 5;
   function carregarHistorico() {
-    try { return JSON.parse(localStorage.getItem('gsnfotos_historico') || '[]'); }
+    try { return JSON.parse(localStorage.getItem('GSLFotos_historico') || '[]'); }
     catch { return []; }
   }
   function salvarNoHistorico(sku) {
     let historico = carregarHistorico().filter(s => s !== sku);
     historico.unshift(sku);
     historico = historico.slice(0, LIMITE_HISTORICO);
-    localStorage.setItem('gsnfotos_historico', JSON.stringify(historico));
+    localStorage.setItem('GSLFotos_historico', JSON.stringify(historico));
     renderHistorico();
   }
   function renderHistorico() {
@@ -263,6 +264,7 @@
       dadosBagy = data.bagy;
       vinculos = {};
       fotosExistentesId = {};
+      fotosExistentesIds = {};
       document.getElementById('foto-pool').innerHTML = '';
       contadorFoto = 0;
       salvarNoHistorico(sku.toUpperCase());
@@ -448,6 +450,11 @@
 
       const temFotoExistente = !!v.fotoAtual;
       if (v.fotoAtualId) fotosExistentesId[v.id] = v.fotoAtualId;
+      // Guarda TODAS as imagens já cadastradas (não só a exibida no
+      // slot) — necessário pra publicar() apagar tudo que for antigo,
+      // evitando fotos órfãs (principalmente em produto simples).
+      if (v.fotoAtualIds?.length) fotosExistentesIds[v.id] = v.fotoAtualIds;
+      else if (v.fotoAtualId) fotosExistentesIds[v.id] = [v.fotoAtualId];
       const slotConteudo = temFotoExistente ? `<img src="${v.fotoAtual}" />` : '＋';
       const statusInicial = temFotoExistente
         ? 'Foto atual (arraste para substituir)'
@@ -635,7 +642,7 @@
         produto_id: dadosBagy?.produto?.id,
         color_id: idReal,
         foto_url,
-        imagem_existente_id: fotosExistentesId[color_id] || null,
+        imagens_existentes_ids: fotosExistentesIds[color_id] || [],
         posicao,
       };
     });
