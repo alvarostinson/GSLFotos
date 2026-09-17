@@ -196,6 +196,7 @@
   let dadosBagy = null;   // { produto: {id, nome, codigo}, variacoes: [{id, codigo, nome, fotoAtual}] }
   let vinculos = {};      // color_id -> foto_url (nova, escolhida pelo usuário)
   let fotosExistentesId = {}; // color_id -> id da imagem já cadastrada na Bagy (se houver)
+  let todosOsIdsPorVariacao = {}; // color_id -> array de TODOS os IDs de foto existentes (produto simples pode ter mais de uma)
   let ordemVariacoesAtual = []; // ordem de exibição das variações — usada para decidir qual vira "capa"
   let contadorFoto = 0;
   const cacheDeBuscas = new Map(); // sku -> resposta já buscada nesta sessão
@@ -263,6 +264,7 @@
       dadosBagy = data.bagy;
       vinculos = {};
       fotosExistentesId = {};
+      todosOsIdsPorVariacao = {};
       document.getElementById('foto-pool').innerHTML = '';
       contadorFoto = 0;
       salvarNoHistorico(sku.toUpperCase());
@@ -448,6 +450,7 @@
 
       const temFotoExistente = !!v.fotoAtual;
       if (v.fotoAtualId) fotosExistentesId[v.id] = v.fotoAtualId;
+      if (v.todosOsFotoAtualIds?.length) todosOsIdsPorVariacao[v.id] = v.todosOsFotoAtualIds;
       const slotConteudo = temFotoExistente ? `<img src="${v.fotoAtual}" />` : '＋';
       const statusInicial = temFotoExistente
         ? 'Foto atual (arraste para substituir)'
@@ -636,6 +639,7 @@
         color_id: idReal,
         foto_url,
         imagem_existente_id: fotosExistentesId[color_id] || null,
+        todos_os_ids_para_excluir: todosOsIdsPorVariacao[color_id] || null,
         posicao,
       };
     });
