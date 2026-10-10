@@ -247,7 +247,7 @@
         // publicar uma foto nesse SKU (ver função publicar()).
         data = cacheDeBuscas.get(sku);
       } else {
-        const res = await fetch(`${BACKEND_URL}/produto/${encodeURIComponent(sku)}`);
+        const res = await fetch(`${BACKEND_URL}/produto/${encodeURIComponent(sku)}?plataformas=bagy`);
         data = await res.json();
         if (data.bagy) cacheDeBuscas.set(sku, data);
       }
@@ -691,7 +691,7 @@
     fotosExistentesId = {};
     todosOsIdsPorVariacao = {};
     try {
-      const res = await fetch(`${BACKEND_URL}/produto/${encodeURIComponent(skuAtual)}`);
+      const res = await fetch(`${BACKEND_URL}/produto/${encodeURIComponent(skuAtual)}?plataformas=bagy`);
       const data = await res.json();
       if (!data.bagy) throw new Error('Produto não retornado pela Bagy.');
       cacheDeBuscas.set(skuAtual, data);
