@@ -646,6 +646,7 @@
 
     if (!bagy.length) {
       showToast('Vincule ao menos uma foto antes de publicar.', 'error');
+      publicandoAgora = false; // libera a trava, senão o botão "morre" até recarregar a página
       return;
     }
 
@@ -667,6 +668,12 @@
       // os dados atualizados (novas fotos), não os antigos salvos.
       cacheDeBuscas.delete(skuAtual);
 
+      // Recarrega as variações com os dados ATUAIS da Bagy. Sem isso,
+      // os vínculos e os IDs das fotos antigas (já excluídas) ficavam
+      // na tela — e um novo clique em "Publicar" reenviava as mesmas
+      // variações, criando fotos duplicadas.
+      await recarregarVariacoes();
+
     } catch (e) {
       showToast(e.message, 'error');
     } finally {
@@ -674,6 +681,29 @@
       btn.textContent = '🚀 Publicar na Bagy';
       publicandoAgora = false;
     }
+  }
+
+  // Busca o produto de novo (sem cache) e redesenha as variações,
+  // zerando os vínculos. As fotos já enviadas continuam no pool,
+  // para poderem ser usadas em outras variações.
+  async function recarregarVariacoes() {
+    vinculos = {};
+    fotosExistentesId = {};
+    todosOsIdsPorVariacao = {};
+    try {
+      const res = await fetch(`${BACKEND_URL}/produto/${encodeURIComponent(skuAtual)}`);
+      const data = await res.json();
+      if (!data.bagy) throw new Error('Produto não retornado pela Bagy.');
+      cacheDeBuscas.set(skuAtual, data);
+      dadosBagy = data.bagy;
+      renderVariacoes();
+    } catch (e) {
+      // Sem os dados atuais não dá pra publicar com segurança —
+      // esconde o botão até o usuário buscar o produto de novo.
+      document.getElementById('btn-publicar').style.display = 'none';
+      showToast('Publicado, mas não foi possível atualizar a tela. Busque o produto novamente antes de publicar outra vez.', 'error');
+    }
+    atualizarUsoDasFotos();
   }
 
   function mostrarLog(resultadosBagy) {
