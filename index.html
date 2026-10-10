@@ -197,6 +197,8 @@
   let vinculos = {};      // color_id -> foto_url (nova, escolhida pelo usuário)
   let fotosExistentesId = {}; // color_id -> id da imagem já cadastrada na Bagy (se houver)
   let todosOsIdsPorVariacao = {}; // color_id -> array de TODOS os IDs de foto existentes (produto simples pode ter mais de uma)
+  let nomesPorVariacao = {}; // color_id -> nome da cor (para o resultado e para o nome no Drive)
+  let imgPorVariacao = {}; // color_id -> miniatura escolhida (para restaurar se a publicação falhar)
   let ordemVariacoesAtual = []; // ordem de exibição das variações — usada para decidir qual vira "capa"
   let contadorFoto = 0;
   const cacheDeBuscas = new Map(); // sku -> resposta já buscada nesta sessão
@@ -265,6 +267,8 @@
       vinculos = {};
       fotosExistentesId = {};
       todosOsIdsPorVariacao = {};
+      nomesPorVariacao = {};
+      imgPorVariacao = {};
       document.getElementById('foto-pool').innerHTML = '';
       contadorFoto = 0;
       salvarNoHistorico(sku.toUpperCase());
@@ -387,22 +391,33 @@
       return;
     }
 
-    vinculos[variacaoId] = fotoUrl;
-    slot.classList.add('filled');
-    slot.innerHTML = `<img src="${fotoImg}" alt="Foto da variação" />`;
-
-    const imgSlot = slot.querySelector('img');
-    imgSlot.addEventListener('click', e => {
-      e.stopPropagation();
-      abrirLightbox(fotoImg);
-    });
-
-    status.textContent = 'Foto atribuída';
+    preencherSlot(variacaoId, fotoUrl, fotoImg);
     marcarFotoComoUsada(fotoId);
-    atualizarUsoDasFotos();
 
     fecharSeletorFoto();
     showToast('Foto atribuída à variação.', 'success');
+  }
+
+  // Vincula uma foto a uma variação e atualiza o quadrinho dela.
+  // Usado ao escolher pelo seletor, ao arrastar e ao restaurar as
+  // variações que falharam na publicação.
+  function preencherSlot(variacaoId, fotoUrl, fotoImg) {
+    const slot = document.getElementById(`slot-${variacaoId}`);
+    const status = document.getElementById(`status-${variacaoId}`);
+    if (!slot || !status) return;
+
+    vinculos[variacaoId] = fotoUrl;
+    imgPorVariacao[variacaoId] = fotoImg;
+    slot.classList.add('filled');
+    slot.innerHTML = `<img src="${fotoImg}" alt="Foto da variação" />`;
+    slot.querySelector('img').addEventListener('click', e => {
+      e.stopPropagation();
+      abrirLightbox(fotoImg);
+    });
+    status.textContent = 'Foto atribuída';
+    // Atualiza o ✓ de todas as fotos — ao trocar a foto de uma
+    // variação, a anterior deixa de aparecer como "usada".
+    atualizarUsoDasFotos();
   }
 
   function renderVariacoes() {
@@ -449,6 +464,7 @@
         : v.nome;
 
       const temFotoExistente = !!v.fotoAtual;
+      nomesPorVariacao[v.id] = v.nome || v.codigo;
       if (v.fotoAtualId) fotosExistentesId[v.id] = v.fotoAtualId;
       if (v.todosOsFotoAtualIds?.length) todosOsIdsPorVariacao[v.id] = v.todosOsFotoAtualIds;
       const slotConteudo = temFotoExistente ? `<img src="${v.fotoAtual}" />` : '＋';
@@ -486,15 +502,7 @@
         const fotoId = e.dataTransfer.getData('text/foto-id');
         if (!fotoUrl) return;
 
-        const slot = document.getElementById(`slot-${v.id}`);
-        vinculos[v.id] = fotoUrl;
-        slot.classList.add('filled');
-        slot.innerHTML = `<img src="${fotoImg}" />`;
-        slot.querySelector('img').addEventListener('click', e => {
-          e.stopPropagation();
-          abrirLightbox(fotoImg);
-        });
-        document.getElementById(`status-${v.id}`).textContent = 'Foto atribuída';
+        preencherSlot(v.id, fotoUrl, fotoImg);
         marcarFotoComoUsada(fotoId);
       });
       lista.appendChild(row);
@@ -570,7 +578,7 @@
     // uma foto que ainda não terminou de subir de verdade.
     thumb.draggable = !pendente;
     thumb.innerHTML = `
-      ${ehPrimeira ? '<span class="badge-capa">capa</span>' : ''}
+      ${ehPrimeira ? '<span class="badge-capa">suas fotos</span>' : ''}
       <img src="${urlLocal}" />
       ${pendente ? '<div class="spinner-overlay">⏳</div>' : ''}
     `;
@@ -641,6 +649,11 @@
         imagem_existente_id: fotosExistentesId[color_id] || null,
         todos_os_ids_para_excluir: todosOsIdsPorVariacao[color_id] || null,
         posicao,
+        // Usados pelo backend para renomear a foto no Drive com o
+        // nome da variação. Produto simples (sem cor) fica só com o SKU.
+        sku: skuAtual,
+        nome_variacao: idReal === null ? null : (nomesPorVariacao[color_id] || null),
+        chave: color_id, // chave original em "vinculos" (não vai pra Bagy; uso interno)
       };
     });
 
@@ -661,9 +674,18 @@
         body: JSON.stringify({ bagy }),
       });
       const data = await res.json();
+      const resultados = data.resultados?.bagy || [];
 
-      mostrarLog(data.resultados?.bagy || []);
-      showToast('Publicação concluída — veja o resultado abaixo', 'success');
+      mostrarLog(resultados, bagy);
+      // Variações que deram erro (ou sem resposta) continuam com a
+      // foto vinculada depois de recarregar, para tentar de novo.
+      const falhas = bagy
+        .filter((item, i) => !resultados[i] || resultados[i].error)
+        .map(item => ({ chave: item.chave, url: item.foto_url, img: imgPorVariacao[item.chave] }));
+
+      showToast(falhas.length
+        ? `${falhas.length} variação(ões) com erro — veja abaixo e publique de novo`
+        : 'Publicação concluída — veja o resultado abaixo', falhas.length ? 'error' : 'success');
       // Invalida o cache desse SKU — a próxima busca deve trazer
       // os dados atualizados (novas fotos), não os antigos salvos.
       cacheDeBuscas.delete(skuAtual);
@@ -672,7 +694,7 @@
       // os vínculos e os IDs das fotos antigas (já excluídas) ficavam
       // na tela — e um novo clique em "Publicar" reenviava as mesmas
       // variações, criando fotos duplicadas.
-      await recarregarVariacoes();
+      await recarregarVariacoes(falhas);
 
     } catch (e) {
       showToast(e.message, 'error');
@@ -686,10 +708,12 @@
   // Busca o produto de novo (sem cache) e redesenha as variações,
   // zerando os vínculos. As fotos já enviadas continuam no pool,
   // para poderem ser usadas em outras variações.
-  async function recarregarVariacoes() {
+  async function recarregarVariacoes(falhas = []) {
     vinculos = {};
     fotosExistentesId = {};
     todosOsIdsPorVariacao = {};
+    nomesPorVariacao = {};
+    imgPorVariacao = {};
     try {
       const res = await fetch(`${BACKEND_URL}/produto/${encodeURIComponent(skuAtual)}?plataformas=bagy`);
       const data = await res.json();
@@ -697,6 +721,9 @@
       cacheDeBuscas.set(skuAtual, data);
       dadosBagy = data.bagy;
       renderVariacoes();
+      // Os IDs das fotos já vêm atualizados da Bagy, então republicar
+      // essas variações é seguro (não duplica).
+      falhas.forEach(f => { if (f.url && f.img) preencherSlot(f.chave, f.url, f.img); });
     } catch (e) {
       // Sem os dados atuais não dá pra publicar com segurança —
       // esconde o botão até o usuário buscar o produto de novo.
@@ -706,17 +733,23 @@
     atualizarUsoDasFotos();
   }
 
-  function mostrarLog(resultadosBagy) {
+  // Os resultados voltam na mesma ordem dos itens enviados — por
+  // isso dá pra mostrar o nome de cada variação ao lado.
+  function mostrarLog(resultadosBagy, enviados) {
     const card = document.getElementById('card-log');
     const log = document.getElementById('log');
     log.innerHTML = '';
     card.style.display = 'block';
 
-    resultadosBagy.forEach(r => {
+    enviados.forEach((item, i) => {
+      const r = resultadosBagy[i];
+      const nome = nomesPorVariacao[item.chave] || 'Produto';
       const linha = document.createElement('div');
-      const ok = !r.error;
+      const ok = r && !r.error;
       linha.className = `log-line ${ok ? 'ok' : 'err'}`;
-      linha.textContent = ok ? `✓ publicado com sucesso` : `✗ ${r.error}`;
+      linha.textContent = ok
+        ? `✓ ${nome} — publicada`
+        : `✗ ${nome} — ${r?.error || 'sem resposta do servidor'}`;
       log.appendChild(linha);
     });
   }
