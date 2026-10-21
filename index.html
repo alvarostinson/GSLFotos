@@ -2,813 +2,686 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#F7F2FA" />
 <title>GSLFotos — Publicar</title>
 <link rel="manifest" href="manifest.json" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Roboto+Mono:wght@500&display=swap" />
+<!--
+  GSLFotos — versão nova (v2), no endereço principal.
+  A versão anterior continua inteira em antiga/index.html, usando o
+  MESMO backend. Para voltar a ela no endereço principal, basta
+  trocar este arquivo pelo de antiga/ (e o manifest.json também).
+-->
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap');
   :root {
-    --bg:#0f0f1a; --surface:#1a1a2e; --surface2:#22223a; --border:#2e2e4a;
-    --accent:#c084fc; --accent-solid:#7c3aed; --text:#e8e8f0; --text-muted:#7070a0;
-    --success:#34d399; --error:#f87171; --warning:#fbbf24; --radius:14px; --radius-sm:8px;
+    --primaria: #6750A4; --primaria-escura: #4F378B; --sobre-primaria: #FFFFFF;
+    --tonal: #E8DEF8; --sobre-tonal: #1D192B;
+    --rosa: #FFD8E4; --sobre-rosa: #31111D; --rosa-escuro: #7D5260;
+    --fundo: #F7F2FA; --superficie: #FFFFFF; --superficie2: #F3EDF7; --superficie3: #ECE6F0;
+    --texto: #1D1B20; --texto2: #49454F; --borda: #CAC4D0; --contorno: #79747E;
+    --escuro: #1D1B20; --escuro2: #2B2930; --lilas: #D0BCFF; --sobre-lilas: #381E72;
+    --ok: #146C2E; --ok-fundo: #C4EED0; --erro: #B3261E; --erro-fundo: #FFDAD6;
+    --raio: 20px;
   }
-  * { box-sizing:border-box; margin:0; padding:0; }
-  body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--text); min-height:100dvh; }
-  header { padding:20px; display:flex; align-items:center; gap:12px; }
-  .logo { width:36px; height:36px; background:linear-gradient(135deg,var(--accent-solid),#a855f7); border-radius:10px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
-  .logo svg { width:20px; height:20px; }
-  header h1 { font-size:17px; font-weight:600; }
-  header span { font-size:12px; color:var(--text-muted); font-family:'DM Mono',monospace; }
-  .btn-drive { margin-left:auto; background:var(--surface); border:1px solid var(--border); color:var(--text); font-size:12px; font-weight:600; padding:8px 14px; border-radius:99px; text-decoration:none; display:flex; align-items:center; gap:6px; transition:border-color .15s, color .15s; }
-  .btn-drive:hover { border-color:var(--accent); color:var(--accent); }
-  main { padding:0 20px 24px; display:flex; flex-direction:column; gap:16px; max-width:480px; margin:0 auto; }
-  .card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:18px; }
-  .field-label { font-size:11px; font-weight:600; letter-spacing:0.8px; text-transform:uppercase; color:var(--text-muted); margin-bottom:8px; }
-  input[type="text"] { width:100%; background:var(--surface2); border:1.5px solid var(--border); border-radius:var(--radius-sm); color:var(--text); font-family:'DM Mono',monospace; font-size:18px; font-weight:500; letter-spacing:1px; padding:13px 14px; outline:none; text-transform:uppercase; }
-  input[type="text"]:focus { border-color:var(--accent); }
-  .btn { width:100%; background:linear-gradient(135deg,var(--accent-solid),#a855f7); border:none; border-radius:var(--radius); color:white; font-size:15px; font-weight:600; padding:14px; cursor:pointer; }
-  .btn:disabled { opacity:0.4; cursor:not-allowed; }
-  .chip-historico { background:var(--surface2); border:1px solid var(--border); color:var(--text-muted); font-family:'DM Mono',monospace; font-size:11px; padding:4px 10px; border-radius:99px; cursor:pointer; }
-  .chip-historico:hover { border-color:var(--accent); color:var(--accent); }
-  .produto-codigo { font-family:'DM Mono',monospace; font-size:13px; color:var(--accent); font-weight:600; letter-spacing:0.5px; margin-bottom:4px; }
-  .produto-nome { font-size:16px; font-weight:600; margin-bottom:2px; }
-  .produto-sub { font-size:12px; color:var(--text-muted); }
-  .foto-pool { display:grid; grid-template-columns:repeat(auto-fill, minmax(72px, 1fr)); gap:10px; margin-top:14px; }
-  .foto-thumb { aspect-ratio:1; border-radius:10px; overflow:hidden; cursor:grab; border:1.5px solid var(--border); position:relative; transition:transform .15s, border-color .15s; }
-  .foto-thumb:hover { border-color:var(--accent); transform:scale(1.03); }
-  .foto-thumb img { width:100%; height:100%; object-fit:cover; display:block; cursor:zoom-in; }
-  .variacao-slot.filled img { cursor:zoom-in; }
-  .foto-thumb.dragging { opacity:0.3; }
-  .foto-thumb.usada { opacity:0.35; }
-  .foto-thumb.usada::after { content:'✓'; position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:#00000066; color:var(--success); font-size:20px; font-weight:700; }
-  .foto-thumb.enviando img { opacity:0.4; }
-  .spinner-overlay { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:20px; animation:girar 1s linear infinite; }
-  @keyframes girar { from{transform:rotate(0deg);} to{transform:rotate(360deg);} }
-  .foto-thumb .badge-capa { position:absolute; top:4px; left:4px; background:var(--accent-solid); color:white; font-size:9px; font-weight:600; padding:2px 6px; border-radius:6px; z-index:2; }
-  .variacao-card { display:flex; align-items:center; gap:14px; background:var(--surface2); border:1.5px solid var(--border); border-radius:var(--radius); padding:12px; margin-bottom:10px; transition:border-color .15s, background .15s; }
-  .variacao-card.dragover { border-color:var(--accent); background:#7c3aed22; }
-  .variacao-slot { width:64px; height:64px; border-radius:10px; border:1.5px dashed var(--border); display:flex; align-items:center; justify-content:center; flex-shrink:0; overflow:hidden; font-size:22px; color:var(--text-muted); position:relative; }
-  .variacao-slot.filled { border-style:solid; border-color:var(--success); }
-  .variacao-slot img { width:100%; height:100%; object-fit:cover; display:block; }
-  .variacao-info { flex:1; min-width:0; }
-  .variacao-nome { font-size:14px; font-weight:600; }
-  .variacao-status { font-size:11px; color:var(--text-muted); margin-top:2px; }
-  .variacao-remover { background:none; border:none; color:var(--error); font-size:18px; cursor:pointer; padding:4px 8px; flex-shrink:0; opacity:0; transition:opacity .15s; }
-  .variacao-card:has(.filled) .variacao-remover { opacity:1; }
-  .dropzone { border:2px dashed var(--border); border-radius:var(--radius); padding:28px 20px; text-align:center; cursor:pointer; position:relative; transition:border-color .15s, background .15s; }
-  .dropzone:hover { border-color:var(--accent); background:#7c3aed11; }
-  .dropzone input { position:absolute; inset:0; opacity:0; cursor:pointer; }
-  .dropzone-icon { font-size:32px; margin-bottom:8px; }
-  .dropzone-text { font-size:14px; font-weight:500; color:var(--text); }
-  .dropzone-sub { font-size:12px; color:var(--text-muted); margin-top:4px; }
-  .toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(80px); background:var(--surface2); border:1px solid var(--border); border-radius:var(--radius-sm); padding:12px 18px; font-size:13px; font-weight:500; transition:transform .3s; z-index:200; max-width:90vw; }
-  .toast.show { transform:translateX(-50%) translateY(0); }
-  .toast.success { border-color:var(--success); color:var(--success); }
-  .toast.error { border-color:var(--error); color:var(--error); }
-  .log { font-family:'DM Mono',monospace; font-size:11px; color:var(--text-muted); margin-top:10px; display:flex; flex-direction:column; gap:3px; }
-  .log-line.ok { color:var(--success); }
-  .log-line.err { color:var(--error); }
-  .modal-overlay { position:fixed; inset:0; background:#000000aa; display:flex; align-items:center; justify-content:center; z-index:500; padding:20px; }
-  .modal-overlay.hidden { display:none; }
-  .modal-box { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:24px 20px; max-width:340px; width:100%; text-align:center; }
-  .modal-icone { font-size:32px; margin-bottom:10px; }
-  .modal-titulo { font-size:16px; font-weight:600; margin-bottom:6px; }
-  .modal-mensagem { font-size:13px; color:var(--text-muted); line-height:1.5; margin-bottom:18px; }
-  .modal-btn { background:var(--accent-solid); border:none; color:white; font-size:14px; font-weight:600; padding:10px 24px; border-radius:var(--radius-sm); cursor:pointer; }
-  .seletor-overlay { position:fixed; inset:0; background:#00000088; display:flex; align-items:center; justify-content:center; z-index:550; padding:18px; }
-  .seletor-overlay.hidden { display:none; }
-  .seletor-box { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:18px; width:min(420px, 100%); max-height:82vh; box-shadow:0 20px 60px #00000088; }
-  .seletor-cabecalho { display:flex; align-items:center; gap:10px; margin-bottom:4px; }
-  .seletor-titulo { font-size:16px; font-weight:600; flex:1; }
-  .seletor-subtitulo { font-size:12px; color:var(--text-muted); margin-bottom:14px; }
-  .seletor-fechar { background:none; border:1px solid var(--border); color:var(--text-muted); font-size:16px; width:32px; height:32px; border-radius:50%; cursor:pointer; }
-  .seletor-fechar:hover { color:var(--text); border-color:var(--accent); }
-  .seletor-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; max-height:58vh; overflow-y:auto; padding:2px; }
-  .seletor-item { aspect-ratio:1; border-radius:10px; overflow:hidden; cursor:pointer; border:1.5px solid var(--border); position:relative; background:var(--surface2); }
-  .seletor-item:hover { border-color:var(--accent); transform:scale(1.02); }
-  .seletor-item img { width:100%; height:100%; object-fit:cover; display:block; }
-  .seletor-item.usada::after { content:'✓'; position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:#00000066; color:var(--success); font-size:24px; font-weight:700; }
-  .seletor-vazio { text-align:center; padding:28px 10px; color:var(--text-muted); font-size:13px; }
-  .variacao-card { cursor:pointer; }
-  .variacao-card:hover { border-color:var(--accent); }
-  .variacao-card .variacao-slot, .variacao-card .variacao-remover { cursor:pointer; }
-  .lightbox-overlay { position:fixed; inset:0; background:#000000dd; display:flex; align-items:center; justify-content:center; z-index:600; padding:24px; }
-  .lightbox-overlay.hidden { display:none; }
-  .lightbox-img { max-width:100%; max-height:85vh; border-radius:12px; box-shadow:0 20px 60px #00000088; }
-  .lightbox-fechar { position:absolute; top:20px; right:20px; background:var(--surface); border:1px solid var(--border); color:white; font-size:20px; width:40px; height:40px; border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { background: var(--fundo); }
+  body { font-family: Roboto, system-ui, sans-serif; color: var(--texto); min-height: 100dvh; }
+  button { font-family: inherit; cursor: pointer; color: inherit; }
+  input { font-family: inherit; }
+  .app { max-width: 480px; margin: 0 auto; min-height: 100dvh; display: flex; flex-direction: column; }
+  .oculto { display: none !important; }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+
+  /* Barra do topo */
+  .topo { height: 56px; display: flex; align-items: center; padding: 0 8px 0 4px; flex-shrink: 0; position: sticky; top: 0; background: var(--fundo); z-index: 10; }
+  .topo h1 { flex: 1; text-align: center; font-size: 19px; font-weight: 500; }
+  .topo .espaco { width: 48px; }
+  .icone-btn { width: 48px; height: 48px; border: none; background: none; border-radius: 24px; display: flex; align-items: center; justify-content: center; }
+  .icone-btn:active { background: var(--superficie3); }
+
+  .conteudo { flex: 1; padding: 0 16px 16px; display: flex; flex-direction: column; gap: 10px; }
+
+  /* Início */
+  .hero { background: var(--escuro); color: #fff; border-radius: 24px; padding: 16px; display: flex; flex-direction: column; align-items: center; gap: 12px; }
+  .hero-titulo { display: flex; align-items: center; gap: 10px; font-size: 18px; }
+  .bolha { width: 36px; height: 36px; border-radius: 18px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .busca { width: 100%; height: 56px; border-radius: 28px; background: var(--escuro2); display: flex; align-items: center; gap: 8px; padding: 0 6px 0 20px; }
+  .busca input { flex: 1; min-width: 0; border: none; outline: none; background: none; color: #fff; font-family: 'Roboto Mono', monospace; font-size: 17px; letter-spacing: 2px; text-align: center; text-transform: uppercase; }
+  .busca input::placeholder { color: #938F99; letter-spacing: 1px; text-transform: none; font-family: Roboto, sans-serif; }
+  .busca button { width: 44px; height: 44px; border: none; border-radius: 22px; background: var(--lilas); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .busca button:disabled { opacity: .5; }
+  .numeros { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .numero { background: var(--superficie); border: none; border-radius: 16px; padding: 10px 12px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+  .numero b { font-size: 20px; font-weight: 500; }
+  .numero span { font-size: 11px; color: var(--texto2); line-height: 13px; text-align: left; }
+  .continuar { background: var(--rosa); border: none; border-radius: 16px; padding: 8px 12px; display: flex; align-items: center; gap: 12px; color: var(--sobre-rosa); text-align: left; width: 100%; }
+  .continuar .mini { width: 40px; height: 40px; border-radius: 12px; background: #EBCFC6 center/cover; flex-shrink: 0; }
+  .continuar small { display: block; font-size: 12px; color: var(--rosa-escuro); font-weight: 500; }
+  .continuar strong { font-size: 15px; font-weight: 500; }
+  .rotulo-secao { text-align: center; font-size: 13px; font-weight: 500; color: var(--texto2); }
+  .grade-recentes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .cartao-recente { background: var(--superficie); border: none; border-radius: 16px; padding: 6px; display: flex; flex-direction: column; gap: 4px; }
+  .cartao-recente .foto { height: 64px; border-radius: 12px; background: var(--superficie3) center/cover; }
+  .cartao-recente span { font-size: 11px; text-align: center; font-family: 'Roboto Mono', monospace; }
+  .vazio { text-align: center; font-size: 12px; color: var(--texto2); padding: 8px; }
+
+  /* Produto */
+  .cartao-produto { background: var(--superficie); border: 1px solid var(--borda); border-radius: 16px; padding: 8px 12px 8px 8px; display: flex; align-items: center; gap: 10px; }
+  .cartao-produto .mini { width: 44px; height: 44px; border-radius: 10px; background: var(--superficie3) center/cover; flex-shrink: 0; }
+  .cartao-produto .info { flex: 1; min-width: 0; }
+  .cartao-produto .nome { font-size: 15px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .cartao-produto .sku { font-size: 11px; color: var(--texto2); font-family: 'Roboto Mono', monospace; }
+  .preco { height: 28px; padding: 0 10px; border-radius: 14px; background: var(--tonal); color: var(--sobre-tonal); font-size: 14px; font-weight: 500; display: flex; align-items: center; flex-shrink: 0; }
+  .etapa { display: flex; align-items: center; justify-content: center; gap: 8px; padding-top: 6px; }
+  .etapa .num { width: 24px; height: 24px; border-radius: 12px; background: var(--primaria); color: #fff; font-size: 13px; font-weight: 500; display: flex; align-items: center; justify-content: center; }
+  .etapa .titulo { font-size: 16px; font-weight: 500; }
+  .etapa .extra { font-size: 12px; color: var(--texto2); }
+  .pool { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+  .tile { width: 60px; height: 60px; position: relative; flex-shrink: 0; touch-action: manipulation; user-select: none; -webkit-user-select: none; }
+  .tile .foto { width: 60px; height: 60px; border-radius: 12px; border: none; padding: 0; background: var(--superficie3) center/cover; display: flex; align-items: center; justify-content: center; }
+  .tile.usada .foto { opacity: .45; }
+  .tile.selecionada .foto { opacity: 1; outline: 3px solid var(--primaria); outline-offset: 2px; }
+  .tile.arrastando { opacity: .3; }
+  .tile.alvo-drop .foto { outline: 3px dashed var(--primaria); outline-offset: 2px; }
+  .tile .ordem { position: absolute; top: 2px; left: 2px; min-width: 18px; height: 18px; border-radius: 9px; background: var(--primaria); color: #fff; font-size: 11px; font-weight: 500; display: flex; align-items: center; justify-content: center; pointer-events: none; }
+  .tile .lupa { position: absolute; bottom: 2px; right: 2px; width: 22px; height: 22px; border: none; border-radius: 11px; background: #1D1B20B3; display: flex; align-items: center; justify-content: center; padding: 0; }
+  .tile .check { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; }
+  .tile.enviando .foto { opacity: .5; }
+  .tile .girando { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; }
+  .tile .girando i { width: 22px; height: 22px; border-radius: 11px; border: 3px solid #fff; border-top-color: var(--primaria); animation: girar 0.9s linear infinite; }
+  @keyframes girar { to { transform: rotate(360deg); } }
+  .adicionar { width: 60px; height: 60px; border: 2px dashed var(--primaria); border-radius: 12px; background: #F7F2FA; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: var(--primaria); font-size: 10px; font-weight: 500; position: relative; overflow: hidden; }
+  .adicionar input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+  .progresso { display: flex; flex-direction: column; gap: 6px; }
+  .progresso .linha { display: flex; justify-content: space-between; font-size: 12px; color: var(--texto2); }
+  .progresso .barra { height: 6px; border-radius: 3px; background: var(--tonal); overflow: hidden; }
+  .progresso .barra i { display: block; height: 6px; background: var(--primaria); transition: width .2s; }
+  .dica { font-size: 11px; color: var(--texto2); text-align: center; }
+  .divisor { height: 1px; background: var(--borda); margin: 6px 48px; }
+  .btn-tonal { align-self: center; height: 36px; padding: 0 14px; border: none; border-radius: 18px; background: var(--superficie2); color: var(--primaria); font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 6px; }
+  .cor { display: flex; align-items: center; gap: 8px; padding: 10px; border-radius: 20px; background: var(--superficie); border: 1px solid var(--borda); }
+  .cor.alvo { background: #EADDFF; border: 2px solid var(--primaria); }
+  .cor .area { flex: 1; min-width: 0; border: none; background: none; padding: 0; display: flex; align-items: center; gap: 8px; text-align: left; }
+  .quadro { width: 52px; height: 52px; border-radius: 10px; flex-shrink: 0; background: var(--superficie3) center/cover; display: flex; align-items: center; justify-content: center; }
+  .quadro.atual { opacity: .5; }
+  .quadro.nova { outline: 2px solid var(--ok); }
+  .quadro.vazia { background: #F7F2FA; border: 2px dashed var(--primaria); }
+  .cor .textos { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+  .cor .nome { font-size: 15px; font-weight: 500; }
+  .cor .status { font-size: 12px; color: var(--texto2); }
+  .cor .status.ok { color: var(--ok); }
+  .cor .acoes { display: flex; flex-direction: column; }
+  .cor .acoes button { width: 36px; height: 36px; }
+  .rodape { position: sticky; bottom: 0; padding: 12px 16px calc(12px + env(safe-area-inset-bottom)); background: var(--superficie2); border-radius: 24px 24px 0 0; }
+  .btn-principal { width: 100%; height: 56px; border: none; border-radius: 28px; background: var(--primaria); color: #fff; font-size: 16px; font-weight: 500; display: flex; align-items: center; justify-content: center; gap: 8px; }
+  .btn-principal:disabled { background: var(--borda); }
+  .btn-contorno { width: 100%; height: 48px; border: 1px solid var(--contorno); border-radius: 24px; background: none; color: var(--primaria); font-size: 14px; font-weight: 500; display: flex; align-items: center; justify-content: center; gap: 8px; }
+
+  /* Resultado */
+  .resultado-topo { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 16px 0 8px; text-align: center; }
+  .resultado-topo .grande { width: 72px; height: 72px; border-radius: 36px; display: flex; align-items: center; justify-content: center; }
+  .resultado-topo h2 { font-size: 22px; font-weight: 400; }
+  .lista { background: var(--superficie); border: 1px solid var(--borda); border-radius: 20px; padding: 4px 16px; }
+  .lista .item { display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 6px 0; border-bottom: 1px solid var(--superficie3); }
+  .lista .item:last-child { border-bottom: none; }
+  .lista .item .mini { width: 36px; height: 36px; border-radius: 8px; background: var(--superficie3) center/cover; flex-shrink: 0; }
+  .lista .item .txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+  .lista .item .txt small { font-size: 12px; color: var(--erro); }
+
+  /* Recentes */
+  .abas { display: flex; border-bottom: 1px solid var(--borda); margin: 0 -16px; }
+  .abas button { flex: 1; height: 48px; border: none; background: none; font-size: 14px; font-weight: 500; color: var(--texto2); border-bottom: 3px solid transparent; }
+  .abas button.ativa { color: var(--primaria); border-bottom-color: var(--primaria); }
+  .linha-recente { display: flex; align-items: center; gap: 14px; padding: 10px 0; border: none; background: none; width: 100%; text-align: left; }
+  .linha-recente .mini { width: 52px; height: 52px; border-radius: 12px; background: var(--superficie3) center/cover; flex-shrink: 0; }
+  .linha-recente .txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+  .linha-recente .txt span { font-size: 15px; }
+  .linha-recente .txt small { font-size: 12px; color: var(--texto2); }
+
+  /* Menu lateral */
+  .veu { position: fixed; inset: 0; background: #1D1B2066; z-index: 50; border: none; }
+  .gaveta { position: fixed; top: 0; bottom: 0; left: 0; width: min(310px, 85vw); background: var(--superficie2); border-radius: 0 16px 16px 0; padding: 12px; z-index: 51; display: flex; flex-direction: column; gap: 2px; transform: translateX(-105%); transition: transform .22s ease; }
+  .gaveta.aberta { transform: none; }
+  .gaveta .marca { padding: 16px 16px 20px; display: flex; align-items: center; gap: 12px; font-size: 18px; font-weight: 500; }
+  .gaveta button, .gaveta a { height: 52px; border: none; border-radius: 26px; background: none; padding: 0 16px; display: flex; align-items: center; gap: 12px; font-size: 14px; font-weight: 500; color: var(--texto); text-decoration: none; width: 100%; }
+  .gaveta .ativo { background: var(--tonal); color: var(--sobre-tonal); }
+  .gaveta .sep { height: 1px; background: var(--borda); margin: 8px 16px; }
+  .gaveta .sub { padding: 8px 16px; font-size: 13px; font-weight: 500; color: var(--texto2); }
+  .gaveta .rodape-gaveta { margin-top: auto; font-size: 11px; color: var(--texto2); padding: 8px 16px; }
+
+  /* Foto ampliada */
+  .ampliada { position: fixed; inset: 0; background: #0E0D11; z-index: 60; display: flex; flex-direction: column; }
+  .ampliada .topo { background: none; color: #fff; }
+  .ampliada .topo h1 { text-align: left; padding-left: 12px; font-size: 16px; }
+  .ampliada img { flex: 1; min-height: 0; width: 100%; object-fit: contain; padding: 16px; }
+
+  /* Aviso */
+  .aviso { position: fixed; left: 50%; bottom: 96px; transform: translateX(-50%) translateY(140px); background: var(--escuro); color: #fff; padding: 12px 18px; border-radius: 12px; font-size: 14px; z-index: 70; max-width: 90vw; transition: transform .25s, opacity .25s; text-align: center; opacity: 0; visibility: hidden; pointer-events: none; }
+  .aviso.mostrar { transform: translateX(-50%) translateY(0); opacity: 1; visibility: visible; }
+  .aviso.erro { background: var(--erro); }
+
+  .carregando { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; font-size: 17px; }
+  .carregando i { width: 56px; height: 56px; border-radius: 28px; border: 6px solid var(--tonal); border-top-color: var(--primaria); animation: girar 0.9s linear infinite; }
 </style>
 </head>
 <body>
-
-<header>
-  <div class="logo">
-    <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <rect x="3" y="3" width="18" height="18" rx="3"/>
-      <circle cx="8.5" cy="8.5" r="1.5"/>
-      <polyline points="21 15 16 10 5 21"/>
-    </svg>
-  </div>
-  <div><h1>GSLFotos</h1><span>Publicar na Bagy</span></div>
-  <a href="https://drive.google.com/drive/folders/1VVVFN0QXS_lClJzdlWFVS0FO1zFP49bx?usp=sharing" target="_blank" rel="noopener" class="btn-drive">📁 Drive</a>
-</header>
-
-<main>
-
-  <div class="card" id="card-busca">
-    <div class="field-label">🏷️ Código do produto (SKU)</div>
-    <input type="text" id="sku-input" placeholder="Ex: CO00649" autocomplete="off" onkeydown="if(event.key==='Enter') buscarProduto()" />
-    <div id="historico-skus" style="display:flex; gap:6px; flex-wrap:wrap; margin-top:8px;"></div>
-    <button class="btn" id="btn-buscar" style="margin-top:12px" onclick="buscarProduto()">🔍 Buscar produto</button>
-  </div>
-
-  <div class="card" id="card-produto" style="display:none;">
-    <div class="produto-codigo" id="produto-codigo"></div>
-    <div class="produto-nome" id="produto-nome"></div>
-    <div class="produto-sub" id="produto-sub"></div>
-  </div>
-
-  <div class="card" id="card-upload" style="display:none;">
-    <div class="field-label">📸 1. Envie todas as fotos do produto</div>
-    <div class="dropzone">
-      <input type="file" id="file-input" accept="image/*" multiple />
-      <div class="dropzone-icon">🖼️</div>
-      <div class="dropzone-text">Selecionar fotos</div>
-      <div class="dropzone-sub">Toque para abrir a galeria · Múltiplas permitidas</div>
-    </div>
-    <div class="foto-pool" id="foto-pool"></div>
-  </div>
-
-  <div class="card" id="card-variacoes" style="display:none;">
-    <div class="field-label">🎨 2. Arraste cada foto para a variação certa</div>
-    <div id="variacoes-list"></div>
-  </div>
-
-  <button class="btn" id="btn-publicar" style="display:none;" onclick="publicar()">🚀 Publicar na Bagy</button>
-
-  <div class="card" id="card-log" style="display:none;">
-    <div class="field-label">✅ Resultado</div>
-    <div class="log" id="log"></div>
-  </div>
-
-</main>
-
-<div class="modal-overlay hidden" id="modal-overlay" onclick="if(event.target===this) fecharModal()">
-  <div class="modal-box">
-    <div class="modal-icone">⚠️</div>
-    <div class="modal-titulo" id="modal-titulo">Produto não encontrado</div>
-    <div class="modal-mensagem" id="modal-mensagem"></div>
-    <button class="modal-btn" onclick="fecharModal()">Entendi</button>
-  </div>
-</div>
-
-<div class="seletor-overlay hidden" id="seletor-overlay" onclick="if(event.target===this) fecharSeletorFoto()">
-  <div class="seletor-box">
-    <div class="seletor-cabecalho">
-      <div class="seletor-titulo" id="seletor-titulo">Escolher foto</div>
-      <button class="seletor-fechar" onclick="fecharSeletorFoto()">✕</button>
-    </div>
-    <div class="seletor-subtitulo">Clique em uma foto enviada para atribuí-la a esta variação.</div>
-    <div class="seletor-grid" id="seletor-grid"></div>
-  </div>
-</div>
-
-<div class="lightbox-overlay hidden" id="lightbox-overlay" onclick="if(event.target===this) fecharLightbox()">
-  <button class="lightbox-fechar" onclick="fecharLightbox()">✕</button>
-  <img class="lightbox-img" id="lightbox-img" src="" alt="Prévia da foto" />
-</div>
-
-<div class="toast" id="toast"></div>
+<div class="app" id="app"></div>
+<div class="aviso" id="aviso" role="status" aria-live="polite"></div>
 
 <script>
   const BACKEND_URL = 'https://gsnfotos-v3.onrender.com';
+  const PASTA_DRIVE = 'https://drive.google.com/drive/folders/1VVVFN0QXS_lClJzdlWFVS0FO1zFP49bx?usp=sharing';
 
-  // Captura qualquer erro JS não tratado e mostra no modal — sem
-  // isso, um erro "silencioso" só aparece no console (que a
-  // maioria das pessoas não abre), dificultando saber o que houve.
-  window.addEventListener('error', e => {
-    mostrarModal('Erro inesperado', (e.message || 'Erro desconhecido') + ' (linha ' + e.lineno + ')');
-  });
-  window.addEventListener('unhandledrejection', e => {
-    mostrarModal('Erro inesperado', e.reason?.message || String(e.reason));
-  });
+  // ── Ícones (flat, preenchidos) ─────────────────────────────
+  const I = {
+    menu: '<svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>',
+    voltar: '<svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M20 11H7.8l5.6-5.6L12 4l-8 8 8 8 1.4-1.4L7.8 13H20z"/></svg>',
+    seta: c => `<svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path fill="${c}" d="M4 11h12.2l-5.6-5.6L12 4l8 8-8 8-1.4-1.4 5.6-5.6H4z"/></svg>`,
+    camera: (c, f, t = 20) => `<svg width="${t}" height="${t}" viewBox="0 0 24 24" aria-hidden="true"><path fill="${c}" d="M20 5h-3.2L15 3H9L7.2 5H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2z"/><circle cx="12" cy="13" r="4" fill="${f}"/><circle cx="12" cy="13" r="2.2" fill="${c}"/></svg>`,
+    ok: (t = 22) => `<svg width="${t}" height="${t}" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="#146C2E"/><path d="M7.5 12.5l3 3 6-6.5" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+    erro: (t = 22) => `<svg width="${t}" height="${t}" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="#B3261E"/><path d="M12 7v6" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/><circle cx="12" cy="16.5" r="1.3" fill="#fff"/></svg>`,
+    imagem: c => `<svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path fill="${c}" d="M21 3H3a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h18a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2zM5 17l3.5-4.5 2.5 3 3.5-4.5L19 17H5z"/></svg>`,
+    mais: (t = 20) => `<svg width="${t}" height="${t}" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="#6750A4"/><path d="M12 7v10M7 12h10" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/></svg>`,
+    lupa: (c = '#fff', t = 13) => `<svg width="${t}" height="${t}" viewBox="0 0 24 24" aria-hidden="true"><path fill="${c}" d="M15.5 14h-.8l-.3-.3A6.5 6.5 0 1 0 14 15.5l.3.3v.8l5 5 1.5-1.5-5-5zm-6 0A4.5 4.5 0 1 1 14 9.5 4.5 4.5 0 0 1 9.5 14z"/></svg>`,
+    fechar: (c = 'currentColor') => `<svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path fill="${c}" d="M18.3 5.7 12 12l6.3 6.3-1.4 1.4L10.6 13.4 4.3 19.7l-1.4-1.4L9.2 12 2.9 5.7l1.4-1.4 6.3 6.3 6.3-6.3z"/></svg>`,
+    distribuir: '<svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path fill="#6750A4" d="M14 4l2.3 2.3-2.9 2.9 1.4 1.4 2.9-2.9L20 10V4zM10 4H4v6l2.3-2.3 4.7 4.7V20h2v-8.4L7.7 6.3z"/></svg>',
+    enviar: '<svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path fill="#fff" d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg>',
+    seguir: '<svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path fill="#7D5260" d="M8.6 16.6 13.2 12 8.6 7.4 10 6l6 6-6 6z"/></svg>',
+    grade: '<svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path fill="#49454F" d="M4 4h7v7H4zm9 0h7v7h-7zM4 13h7v7H4zm9 0h7v7h-7z"/></svg>',
+    pasta: '<svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path fill="#49454F" d="M10 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-8z"/></svg>',
+    relogio: '<svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="#49454F"/><path d="M12 7v5l3 2" fill="none" stroke="#F3EDF7" stroke-width="2" stroke-linecap="round"/></svg>',
+    antiga: '<svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path fill="#49454F" d="M13 3a9 9 0 0 0-9 9H1l3.9 3.9L9 12H6a7 7 0 1 1 2.1 5l-1.4 1.4A9 9 0 1 0 13 3zm-1 5v5l4.3 2.5.7-1.2-3.5-2.1V8z"/></svg>',
+    tentar: '<svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path fill="#6750A4" d="M17.6 6.4A8 8 0 1 0 19.7 14h-2.1A6 6 0 1 1 12 6c1.7 0 3.1.7 4.2 1.8L13 11h7V4z"/></svg>',
+  };
 
-  let skuAtual = null;
-  let dadosBagy = null;   // { produto: {id, nome, codigo}, variacoes: [{id, codigo, nome, fotoAtual}] }
-  let vinculos = {};      // color_id -> foto_url (nova, escolhida pelo usuário)
-  let fotosExistentesId = {}; // color_id -> id da imagem já cadastrada na Bagy (se houver)
-  let todosOsIdsPorVariacao = {}; // color_id -> array de TODOS os IDs de foto existentes (produto simples pode ter mais de uma)
-  let nomesPorVariacao = {}; // color_id -> nome da cor (para o resultado e para o nome no Drive)
-  let imgPorVariacao = {}; // color_id -> miniatura escolhida (para restaurar se a publicação falhar)
-  let ordemVariacoesAtual = []; // ordem de exibição das variações — usada para decidir qual vira "capa"
+  // ── Utilidades ─────────────────────────────────────────────
+  const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const bg = url => url ? `style="background-image:url('${esc(url)}')"` : '';
+  const hoje = () => new Date().toISOString().slice(0, 10);
+  function lerLocal(chave, padrao) { try { return JSON.parse(localStorage.getItem(chave)) ?? padrao; } catch { return padrao; } }
+  function gravarLocal(chave, valor) { try { localStorage.setItem(chave, JSON.stringify(valor)); } catch {} }
+  let avisoTimer;
+  function avisar(msg, tipo = '') {
+    const el = document.getElementById('aviso');
+    el.textContent = msg; el.className = `aviso mostrar ${tipo}`;
+    clearTimeout(avisoTimer); avisoTimer = setTimeout(() => el.classList.remove('mostrar'), 4000);
+  }
+
+  // Histórico local (neste aparelho): produtos abertos e publicados.
+  // Os mesmos dados da versão antiga (gsnfotos_historico) continuam lá.
+  function recentesLocais() { return lerLocal('gslv2_recentes', []); }
+  function salvarRecente(info) {
+    const lista = recentesLocais().filter(r => r.sku !== info.sku);
+    lista.unshift({ ...lista.find(r => r.sku === info.sku), ...info, quando: Date.now() });
+    gravarLocal('gslv2_recentes', lista.slice(0, 30));
+  }
+  function publicadosHoje() {
+    const p = lerLocal('gslv2_publicados', { dia: hoje(), lista: [] });
+    return p.dia === hoje() ? p.lista : [];
+  }
+  function registrarPublicado(item) {
+    const lista = publicadosHoje().filter(p => p.sku !== item.sku);
+    lista.unshift(item);
+    gravarLocal('gslv2_publicados', { dia: hoje(), lista });
+  }
+
+  // ── Estado da tela ─────────────────────────────────────────
+  const E = {
+    tela: 'inicio',        // inicio | carregando | produto | publicando | resultado | recentes
+    aba: 0,                // aba da tela Recentes
+    menu: false,
+    ampliada: null,        // { url, titulo }
+    buscando: false,
+    sku: null,
+    dados: null,           // resposta da Bagy (produto + variações)
+    alvos: [],             // variações agrupadas por cor: { chave, idReal, nome, codigo, fotoAtual, fotoAtualId, todosIds }
+    fotos: [],             // fotos enviadas: { id, url (link público), img (miniatura local), enviando }
+    selecionada: null,     // id da foto selecionada
+    vinculos: {},          // chave da cor -> id da foto
+    progresso: null,       // 0-100 enquanto envia
+    publicando: false,     // trava contra publicação duplicada
+    resultado: null,       // [{ chave, nome, img, ok, erro }]
+  };
   let contadorFoto = 0;
-  const cacheDeBuscas = new Map(); // sku -> resposta já buscada nesta sessão
 
-  // Histórico dos últimos SKUs buscados, salvo entre sessões
-  // (localStorage) — facilita revisitar o mesmo produto sem
-  // redigitar o código toda vez.
-  const LIMITE_HISTORICO = 5;
-  function carregarHistorico() {
-    try { return JSON.parse(localStorage.getItem('gsnfotos_historico') || '[]'); }
-    catch { return []; }
+  function mudar(parcial) { Object.assign(E, parcial); render(); }
+
+  // ── Backend ────────────────────────────────────────────────
+  async function buscarNaBagy(sku) {
+    const res = await fetch(`${BACKEND_URL}/produto/${encodeURIComponent(sku)}?plataformas=bagy`);
+    let data;
+    try { data = await res.json(); } catch { throw new Error('O servidor não respondeu direito. Tente de novo em alguns segundos.'); }
+    if (!data.bagy) {
+      const erros = (data.erros || []).filter(e => !e.toLowerCase().includes('bling'));
+      throw new Error(erros.join(' ') || 'Produto não encontrado na Bagy.');
+    }
+    return data.bagy;
   }
-  function salvarNoHistorico(sku) {
-    let historico = carregarHistorico().filter(s => s !== sku);
-    historico.unshift(sku);
-    historico = historico.slice(0, LIMITE_HISTORICO);
-    localStorage.setItem('gsnfotos_historico', JSON.stringify(historico));
-    renderHistorico();
+
+  // Agrupa variações com o mesmo color_id (ex: anéis Prata 17/18/19
+  // usam uma foto só) — mesma regra da versão original.
+  function montarAlvos(bagy) {
+    const brutos = bagy.variacoes?.length
+      ? bagy.variacoes
+      : [{ id: bagy.produto.id, codigo: bagy.produto.codigo, nome: 'Produto (sem variação)' }];
+    const mapa = new Map();
+    brutos.forEach(v => {
+      const chave = (v.id !== null && v.id !== undefined) ? String(v.id) : 'null';
+      if (!mapa.has(chave)) mapa.set(chave, { ...v, chave, idReal: v.id ?? null, codigos: [v.codigo] });
+      else mapa.get(chave).codigos.push(v.codigo);
+    });
+    return Array.from(mapa.values()).map(v => ({
+      chave: v.chave, idReal: v.idReal, codigo: v.codigo,
+      nome: v.codigos.length > 1 ? `${v.nome} (${v.codigos.length} tamanhos)` : (v.nome || v.codigo),
+      nomeCor: v.nome || v.codigo,
+      fotoAtual: v.fotoAtual || null, fotoAtualId: v.fotoAtualId || null,
+      todosIds: v.todosOsFotoAtualIds || null,
+    }));
   }
-  function renderHistorico() {
-    const container = document.getElementById('historico-skus');
-    const historico = carregarHistorico();
-    container.innerHTML = historico.map(sku =>
-      `<span class="chip-historico" onclick="document.getElementById('sku-input').value='${sku}'; buscarProduto();">${sku}</span>`
-    ).join('');
-  }
-  renderHistorico();
 
-  // Aquece o backend assim que a página abre — se o Render estiver
-  // "dormindo" (plano gratuito), ele começa a acordar enquanto o
-  // usuário ainda está digitando o SKU, ganhando alguns segundos
-  // antes da busca de verdade acontecer.
-  fetch(`${BACKEND_URL}/health`).catch(() => {});
-
-  async function buscarProduto() {
-    const sku = document.getElementById('sku-input').value.trim();
-    if (!sku) return;
-
-    const btn = document.getElementById('btn-buscar');
-    btn.disabled = true;
-    btn.textContent = 'Buscando...';
-
+  async function abrirProduto(skuDigitado) {
+    const sku = (skuDigitado || '').trim().toUpperCase();
+    if (!sku || E.buscando) return;
+    mudar({ buscando: true, menu: false });
     try {
-      let data;
-      if (cacheDeBuscas.has(sku)) {
-        // Já buscamos esse SKU nesta sessão — evita nova chamada
-        // à Bagy. Esse cache é limpo automaticamente depois de
-        // publicar uma foto nesse SKU (ver função publicar()).
-        data = cacheDeBuscas.get(sku);
-      } else {
-        const res = await fetch(`${BACKEND_URL}/produto/${encodeURIComponent(sku)}?plataformas=bagy`);
-        data = await res.json();
-        if (data.bagy) cacheDeBuscas.set(sku, data);
-      }
-
-      if (!data.bagy) {
-        // Filtra qualquer menção ao Bling — este frontend só
-        // trabalha com a Bagy, não faz sentido o usuário ver
-        // erro de uma plataforma que nem está em uso aqui.
-        const errosBagy = (data.erros || []).filter(e => !e.toLowerCase().includes('bling'));
-        throw new Error(errosBagy.join(' ') || 'Produto não encontrado na Bagy.');
-      }
-
-      skuAtual = sku;
-      dadosBagy = data.bagy;
-      vinculos = {};
-      fotosExistentesId = {};
-      todosOsIdsPorVariacao = {};
-      nomesPorVariacao = {};
-      imgPorVariacao = {};
-      document.getElementById('foto-pool').innerHTML = '';
+      const bagy = await buscarNaBagy(sku);
       contadorFoto = 0;
-      salvarNoHistorico(sku.toUpperCase());
-
-      document.getElementById('produto-codigo').textContent = (dadosBagy.produto.codigo || sku).toUpperCase();
-      document.getElementById('produto-nome').textContent = dadosBagy.produto.nome;
-
-      const totalVariacoes = dadosBagy.variacoes?.length || 0;
-      document.getElementById('produto-sub').textContent = totalVariacoes > 0
-        ? `${totalVariacoes} variação(ões)`
-        : 'Produto simples (sem variações) — foto vai direto nele';
-
-      renderVariacoes();
-
-      document.getElementById('card-produto').style.display = 'block';
-      document.getElementById('card-upload').style.display = 'block';
-      document.getElementById('card-variacoes').style.display = 'block';
-      document.getElementById('btn-publicar').style.display = 'block';
-      document.getElementById('card-log').style.display = 'none';
-
+      mudar({ tela: 'produto', sku, dados: bagy, alvos: montarAlvos(bagy), fotos: [], vinculos: {}, selecionada: null, resultado: null, buscando: false });
+      salvarRecente({ sku, nome: bagy.produto.nome, foto: bagy.variacoes?.find(v => v.fotoAtual)?.fotoAtual || null, publicado: false });
+      window.scrollTo(0, 0);
     } catch (e) {
-      // Esconde qualquer resultado anterior — evita confusão se o
-      // usuário buscar um SKU errado depois de um SKU válido
-      document.getElementById('card-produto').style.display = 'none';
-      document.getElementById('card-upload').style.display = 'none';
-      document.getElementById('card-variacoes').style.display = 'none';
-      document.getElementById('btn-publicar').style.display = 'none';
-      mostrarModal('Produto não encontrado', e.message);
-    } finally {
-      btn.disabled = false;
-      btn.textContent = '🔍 Buscar produto';
+      mudar({ buscando: false });
+      avisar(e.message, 'erro');
     }
   }
 
-  function abrirLightbox(urlImagem) {
-    document.getElementById('lightbox-img').src = urlImagem;
-    document.getElementById('lightbox-overlay').classList.remove('hidden');
-  }
-
-  function fecharLightbox() {
-    document.getElementById('lightbox-overlay').classList.add('hidden');
-  }
-
-  function mostrarModal(titulo, mensagem) {
-    document.getElementById('modal-titulo').textContent = titulo;
-    document.getElementById('modal-mensagem').textContent = mensagem;
-    document.getElementById('modal-overlay').classList.remove('hidden');
-  }
-
-  function fecharModal() {
-    document.getElementById('modal-overlay').classList.add('hidden');
-  }
-
-  let variacaoSelecionadaParaFoto = null;
-
-  function abrirSeletorFoto(variacaoId, nomeVariacao) {
-    variacaoSelecionadaParaFoto = variacaoId;
-
-    const grid = document.getElementById('seletor-grid');
-    const titulo = document.getElementById('seletor-titulo');
-    const fotos = Array.from(document.querySelectorAll('.foto-thumb'))
-      .filter(el => el.dataset.url && !el.classList.contains('enviando'));
-
-    titulo.textContent = nomeVariacao
-      ? `Escolher foto — ${nomeVariacao}`
-      : 'Escolher foto';
-
-    grid.innerHTML = '';
-
-    if (!fotos.length) {
-      grid.innerHTML = '<div class="seletor-vazio">Nenhuma foto enviada ainda.<br>Envie as fotos acima primeiro.</div>';
-    } else {
-      fotos.forEach(thumb => {
-        const item = document.createElement('div');
-        item.className = 'seletor-item';
-        item.dataset.fotoId = thumb.id;
-        item.title = 'Usar esta foto';
-
-        const img = thumb.querySelector('img');
-        item.innerHTML = `<img src="${img.src}" alt="Foto disponível">`;
-
-        // Mantém a mesma lógica visual usada no arrastar:
-        // se a foto já estiver vinculada a alguma variação, mostra ✓.
-        if (Object.values(vinculos).includes(thumb.dataset.url)) {
-          item.classList.add('usada');
-        }
-
-        item.addEventListener('click', () => {
-          selecionarFotoParaVariacao(
-            variacaoSelecionadaParaFoto,
-            thumb.dataset.url,
-            img.src,
-            thumb.id
-          );
-        });
-
-        grid.appendChild(item);
-      });
-    }
-
-    document.getElementById('seletor-overlay').classList.remove('hidden');
-  }
-
-  function fecharSeletorFoto() {
-    document.getElementById('seletor-overlay').classList.add('hidden');
-    variacaoSelecionadaParaFoto = null;
-  }
-
-  function selecionarFotoParaVariacao(variacaoId, fotoUrl, fotoImg, fotoId) {
-    // variacaoId pode ser null de propósito (produto sem variação,
-    // ver comentário em publicar()) — só bloqueia undefined, que
-    // indicaria uma chamada indevida da função.
-    if (variacaoId === undefined) return;
-
-    const slot = document.getElementById(`slot-${variacaoId}`);
-    const status = document.getElementById(`status-${variacaoId}`);
-
-    if (!slot || !status) {
-      fecharSeletorFoto();
-      return;
-    }
-
-    preencherSlot(variacaoId, fotoUrl, fotoImg);
-    marcarFotoComoUsada(fotoId);
-
-    fecharSeletorFoto();
-    showToast('Foto atribuída à variação.', 'success');
-  }
-
-  // Vincula uma foto a uma variação e atualiza o quadrinho dela.
-  // Usado ao escolher pelo seletor, ao arrastar e ao restaurar as
-  // variações que falharam na publicação.
-  function preencherSlot(variacaoId, fotoUrl, fotoImg) {
-    const slot = document.getElementById(`slot-${variacaoId}`);
-    const status = document.getElementById(`status-${variacaoId}`);
-    if (!slot || !status) return;
-
-    vinculos[variacaoId] = fotoUrl;
-    imgPorVariacao[variacaoId] = fotoImg;
-    slot.classList.add('filled');
-    slot.innerHTML = `<img src="${fotoImg}" alt="Foto da variação" />`;
-    slot.querySelector('img').addEventListener('click', e => {
-      e.stopPropagation();
-      abrirLightbox(fotoImg);
-    });
-    status.textContent = 'Foto atribuída';
-    // Atualiza o ✓ de todas as fotos — ao trocar a foto de uma
-    // variação, a anterior deixa de aparecer como "usada".
-    atualizarUsoDasFotos();
-  }
-
-  function renderVariacoes() {
-    const lista = document.getElementById('variacoes-list');
-    lista.innerHTML = '';
-
-    const alvosBrutos = dadosBagy.variacoes?.length
-      ? dadosBagy.variacoes
-      : [{ id: dadosBagy.produto.id, codigo: dadosBagy.produto.codigo, nome: 'Produto (sem variação)' }];
-
-    // Agrupa variações que compartilham o mesmo "id" (color_id).
-    // Isso acontece com anéis (Prata 17, Prata 18, Prata 19 — mesma
-    // cor, tamanhos diferentes) que usam a mesma foto. Sem agrupar,
-    // cada uma viraria um elemento HTML com ID duplicado, causando
-    // comportamento errático (fotos indo pro lugar errado,
-    // listeners de evento se sobrescrevendo).
-    const agrupadas = new Map();
-    alvosBrutos.forEach(v => {
-      // Normaliza o id como texto: se a Bagy devolver o mesmo
-      // color_id às vezes como número (123) e às vezes como texto
-      // ("123"), sem essa normalização o Map trata como duas
-      // variações diferentes — cada uma vira uma publicação
-      // separada e a Bagy acaba com 2 fotos na mesma variação.
-      const chave = (v.id !== null && v.id !== undefined) ? String(v.id) : `sem-id-${v.codigo}`;
-      if (!agrupadas.has(chave)) {
-        agrupadas.set(chave, { ...v, codigosAgrupados: [v.codigo] });
-      } else {
-        agrupadas.get(chave).codigosAgrupados.push(v.codigo);
-      }
-    });
-    const alvos = Array.from(agrupadas.values());
-    ordemVariacoesAtual = alvos.map(v => v.id);
-
-    alvos.forEach(v => {
-      const row = document.createElement('div');
-      row.className = 'variacao-card';
-      row.dataset.variacaoId = v.id;
-
-      // Se a variação representa mais de um tamanho/código (ex:
-      // anéis agrupados), mostra isso no nome, pra ficar claro
-      // que uma foto só serve pra todos eles.
-      const nomeExibido = v.codigosAgrupados.length > 1
-        ? `${v.nome} (${v.codigosAgrupados.length} tamanhos)`
-        : v.nome;
-
-      const temFotoExistente = !!v.fotoAtual;
-      nomesPorVariacao[v.id] = v.nome || v.codigo;
-      if (v.fotoAtualId) fotosExistentesId[v.id] = v.fotoAtualId;
-      if (v.todosOsFotoAtualIds?.length) todosOsIdsPorVariacao[v.id] = v.todosOsFotoAtualIds;
-      const slotConteudo = temFotoExistente ? `<img src="${v.fotoAtual}" />` : '＋';
-      const statusInicial = temFotoExistente
-        ? 'Foto atual (arraste para substituir)'
-        : 'Arraste uma foto aqui';
-
-      row.innerHTML = `
-        <div class="variacao-slot ${temFotoExistente ? 'filled' : ''}" id="slot-${v.id}">${slotConteudo}</div>
-        <div class="variacao-info">
-          <div class="variacao-nome">${nomeExibido || v.codigo}</div>
-          <div class="variacao-status" id="status-${v.id}">${statusInicial}</div>
-        </div>
-        <button class="variacao-remover" onclick="event.stopPropagation(); removerFotoDaVariacao('${v.id}')" title="Remover">✕</button>
-      `;
-
-      // Além do arrastar, toda a área da variação abre o seletor de fotos.
-      row.addEventListener('click', e => {
-        if (e.target.closest('.variacao-remover')) return;
-        abrirSeletorFoto(v.id, nomeExibido || v.codigo);
-      });
-      if (temFotoExistente) {
-        row.querySelector('.variacao-slot img').addEventListener('click', e => {
-          e.stopPropagation();
-          abrirLightbox(v.fotoAtual);
-        });
-      }
-      row.addEventListener('dragover', e => { e.preventDefault(); row.classList.add('dragover'); });
-      row.addEventListener('dragleave', () => row.classList.remove('dragover'));
-      row.addEventListener('drop', e => {
-        e.preventDefault();
-        row.classList.remove('dragover');
-        const fotoUrl = e.dataTransfer.getData('text/foto-url');
-        const fotoImg = e.dataTransfer.getData('text/foto-img');
-        const fotoId = e.dataTransfer.getData('text/foto-id');
-        if (!fotoUrl) return;
-
-        preencherSlot(v.id, fotoUrl, fotoImg);
-        marcarFotoComoUsada(fotoId);
-      });
-      lista.appendChild(row);
-    });
-  }
-
-  function removerFotoDaVariacao(variacaoId) {
-    delete vinculos[variacaoId];
-    const slot = document.getElementById(`slot-${variacaoId}`);
-    slot.classList.remove('filled');
-    slot.innerHTML = '＋';
-    document.getElementById(`status-${variacaoId}`).textContent = 'Arraste uma foto aqui';
-    atualizarUsoDasFotos();
-  }
-
-  function marcarFotoComoUsada(fotoId) {
-    if (!fotoId) return;
-    const el = document.getElementById(`foto-${fotoId}`);
-    if (el) el.classList.add('usada');
-  }
-
-  function atualizarUsoDasFotos() {
-    const emUso = new Set(Object.values(vinculos));
-    document.querySelectorAll('.foto-thumb').forEach(el => {
-      el.classList.toggle('usada', emUso.has(el.dataset.url));
-    });
-  }
-
-  document.getElementById('file-input').addEventListener('change', async function(e) {
-    const files = Array.from(e.target.files);
-    if (!files.length || !skuAtual) return;
-
-    // Mostra a miniatura de cada foto IMEDIATAMENTE (com um
-    // indicador de "enviando"), sem esperar o upload terminar —
-    // dá feedback visual instantâneo em vez de uma pausa em
-    // branco até o lote inteiro voltar do servidor.
-    const thumbsPendentes = files.map(file => {
-      const localUrl = URL.createObjectURL(file);
-      return adicionarFotoNoPool(null, localUrl, true); // true = pendente
-    });
-
-    // Reduz cada foto no próprio aparelho antes de enviar (ver
-    // prepararFotoParaEnvio) — o envio fica bem mais rápido.
-    const fotosPreparadas = await Promise.all(files.map(prepararFotoParaEnvio));
-
-    const form = new FormData();
-    form.append('sku', skuAtual);
-    fotosPreparadas.forEach(f => form.append('fotos', f));
-
+  // Reduz a foto no aparelho para no máximo 2000px (qualidade 95%) —
+  // o servidor nunca usa mais que isso. Fotos até 1,5MB vão como estão.
+  async function prepararFoto(file) {
     try {
-      const res = await fetch(`${BACKEND_URL}/upload-temporario`, { method: 'POST', body: form });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-
-      // Atualiza cada miniatura pendente com a URL pública real,
-      // removendo o indicador de "enviando"
-      data.fotos.forEach((foto, i) => {
-        const thumb = thumbsPendentes[i];
-        if (thumb) confirmarUploadDaMiniatura(thumb, foto.url);
-      });
-    } catch (err) {
-      // Remove as miniaturas que falharam, para não deixar "presas"
-      thumbsPendentes.forEach(thumb => thumb?.remove());
-      showToast(err.message, 'error');
-    }
-  });
-
-  // O servidor nunca usa mais que 2000px (limite final da Bagy é
-  // 350KB). Então reduzir para 2000px AQUI, com qualidade 95%, não
-  // muda a foto final — só evita subir 5 a 10 MB por foto pela
-  // internet. Se algo der errado, envia a foto original.
-  const LADO_MAXIMO_ENVIO = 2000;
-  const QUALIDADE_ENVIO = 0.95;
-  const TAMANHO_DISPENSA_REDUCAO = 1.5 * 1024 * 1024; // fotos menores que 1,5MB vão como estão
-
-  async function prepararFotoParaEnvio(file) {
-    try {
-      if (file.size <= TAMANHO_DISPENSA_REDUCAO) return file;
-      // imageOrientation: respeita a posição em que a foto foi tirada
+      if (file.size <= 1.5 * 1024 * 1024) return file;
       const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
-      const escala = Math.min(1, LADO_MAXIMO_ENVIO / Math.max(bitmap.width, bitmap.height));
-      const largura = Math.round(bitmap.width * escala);
-      const altura = Math.round(bitmap.height * escala);
-
+      const escala = Math.min(1, 2000 / Math.max(bitmap.width, bitmap.height));
       const canvas = document.createElement('canvas');
-      canvas.width = largura;
-      canvas.height = altura;
+      canvas.width = Math.round(bitmap.width * escala);
+      canvas.height = Math.round(bitmap.height * escala);
       const ctx = canvas.getContext('2d');
       ctx.imageSmoothingQuality = 'high';
-      ctx.drawImage(bitmap, 0, 0, largura, altura);
+      ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
       bitmap.close?.();
-
-      const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', QUALIDADE_ENVIO));
+      const blob = await new Promise(r => canvas.toBlob(r, 'image/jpeg', 0.95));
       if (!blob || blob.size >= file.size) return file;
-      const nome = file.name.replace(/\.[^.]+$/, '') + '.jpg';
-      return new File([blob], nome, { type: 'image/jpeg' });
-    } catch (err) {
-      console.warn('Não foi possível reduzir a foto, enviando original:', err);
-      return file;
+      return new File([blob], file.name.replace(/\.[^.]+$/, '') + '.jpg', { type: 'image/jpeg' });
+    } catch { return file; }
+  }
+
+  // Envio com barra de progresso real (bytes enviados).
+  function enviarComProgresso(form) {
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', `${BACKEND_URL}/upload-temporario`);
+      xhr.upload.onprogress = ev => { if (ev.lengthComputable) mudar({ progresso: Math.round(ev.loaded / ev.total * 95) }); };
+      xhr.onload = () => {
+        let data; try { data = JSON.parse(xhr.responseText); } catch { return reject(new Error('O servidor não respondeu direito. Tente de novo.')); }
+        if (xhr.status >= 400) return reject(new Error(data.error || 'Falha ao enviar as fotos.'));
+        resolve(data);
+      };
+      xhr.onerror = () => reject(new Error('Sem conexão com o servidor. Tente de novo.'));
+      xhr.send(form);
+    });
+  }
+
+  async function adicionarFotos(files) {
+    if (!files.length || !E.sku) return;
+    const novas = files.map(f => ({ id: `f${++contadorFoto}`, url: null, img: URL.createObjectURL(f), enviando: true }));
+    mudar({ fotos: [...E.fotos, ...novas], progresso: 0 });
+    try {
+      const preparadas = await Promise.all(files.map(prepararFoto));
+      const form = new FormData();
+      form.append('sku', E.sku);
+      preparadas.forEach(f => form.append('fotos', f));
+      const data = await enviarComProgresso(form);
+      data.fotos.forEach((foto, i) => { if (novas[i]) { novas[i].url = foto.url; novas[i].enviando = false; } });
+      mudar({ progresso: null });
+    } catch (e) {
+      const ids = new Set(novas.map(n => n.id));
+      mudar({ fotos: E.fotos.filter(f => !ids.has(f.id)), progresso: null });
+      avisar(e.message, 'erro');
     }
   }
 
-  function adicionarFotoNoPool(urlPublica, urlLocal, pendente = false) {
-    const fotoId = `f${++contadorFoto}`;
-    const pool = document.getElementById('foto-pool');
-    const ehPrimeira = pool.children.length === 0;
-    const thumb = document.createElement('div');
-    thumb.className = 'foto-thumb' + (pendente ? ' enviando' : '');
-    thumb.id = `foto-${fotoId}`;
-    thumb.dataset.url = urlPublica || '';
-    // Enquanto pendente, não pode ser arrastada — evita vincular
-    // uma foto que ainda não terminou de subir de verdade.
-    thumb.draggable = !pendente;
-    thumb.innerHTML = `
-      ${ehPrimeira ? '<span class="badge-capa">suas fotos</span>' : ''}
-      <img src="${urlLocal}" />
-      ${pendente ? '<div class="spinner-overlay">⏳</div>' : ''}
-    `;
-    thumb.querySelector('img').addEventListener('click', e => {
-      e.stopPropagation();
-      if (!pendente) abrirLightbox(urlLocal);
-    });
-    thumb.addEventListener('dragstart', e => {
-      thumb.classList.add('dragging');
-      e.dataTransfer.setData('text/foto-url', thumb.dataset.url);
-      e.dataTransfer.setData('text/foto-img', urlLocal);
-      e.dataTransfer.setData('text/foto-id', fotoId);
-    });
-    thumb.addEventListener('dragend', () => thumb.classList.remove('dragging'));
-    pool.appendChild(thumb);
-    return thumb;
-  }
-
-  // Chamada quando o upload de uma miniatura pendente termina —
-  // remove o indicador de "enviando" e libera o drag-and-drop.
-  function confirmarUploadDaMiniatura(thumb, urlPublica) {
-    thumb.dataset.url = urlPublica;
-    thumb.draggable = true;
-    thumb.classList.remove('enviando');
-    const overlay = thumb.querySelector('.spinner-overlay');
-    if (overlay) overlay.remove();
-    thumb.querySelector('img').addEventListener('click', e => {
-      e.stopPropagation();
-      abrirLightbox(thumb.querySelector('img').src);
-    });
-  }
-
-  let publicandoAgora = false; // trava contra clique duplo/duplo disparo do evento
-
-  async function publicar() {
-    // Se já tem uma publicação em andamento, ignora esse novo
-    // disparo — evita que a mesma variação seja enviada 2x pra
-    // Bagy (o que aparecia lá como foto duplicada).
-    if (publicandoAgora) return;
-    publicandoAgora = true;
-
-    // A Bagy precisa do ID do produto junto com o color_id (a
-    // variação em si não tem um ID isolado do lado da API deles)
-    // Quando a variação é "id: null" (produto simples, sem cor),
-    // o JS transforma isso na chave de string "null" dentro do
-    // objeto — convertemos de volta para null de verdade aqui,
-    // senão o backend recebe a string "null" por engano.
-    //
-    // Object.entries(vinculos) já garante 1 entrada por color_id
-    // (chave de objeto é única por definição) — então se ainda
-    // assim aparecer duplicidade na Bagy, ela não vem daqui; ver
-    // trava "publicandoAgora" acima e o "finally" abaixo.
-    const bagy = Object.entries(vinculos).map(([color_id, foto_url]) => {
-      const idReal = color_id === 'null' ? null : color_id;
-      // A ÚLTIMA variação da lista sempre vira a capa (position 1)
-      // — isso garante uma ordem previsível mesmo com as
-      // publicações rodando em paralelo (não depende de "quem
-      // termina primeiro").
-      const indiceNaLista = ordemVariacoesAtual.findIndex(id => String(id) === String(idReal));
-      const posicao = indiceNaLista === -1
-        ? null
-        : ordemVariacoesAtual.length - indiceNaLista;
-
+  // Monta o envio exatamente como a versão original: a ÚLTIMA cor da
+  // lista vira a capa (position 1); IDs de todas as fotos antigas vão
+  // junto para serem trocadas (não duplicar); SKU + nome da cor
+  // renomeiam a foto no Drive.
+  function montarEnvio() {
+    const ordem = E.alvos.map(a => a.chave);
+    return E.alvos.filter(a => E.vinculos[a.chave]).map(a => {
+      const foto = E.fotos.find(f => f.id === E.vinculos[a.chave]);
+      const indice = ordem.indexOf(a.chave);
       return {
-        produto_id: dadosBagy?.produto?.id,
-        color_id: idReal,
-        foto_url,
-        imagem_existente_id: fotosExistentesId[color_id] || null,
-        todos_os_ids_para_excluir: todosOsIdsPorVariacao[color_id] || null,
-        posicao,
-        // Usados pelo backend para renomear a foto no Drive com o
-        // nome da variação. Produto simples (sem cor) fica só com o SKU.
-        sku: skuAtual,
-        nome_variacao: idReal === null ? null : (nomesPorVariacao[color_id] || null),
-        chave: color_id, // chave original em "vinculos" (não vai pra Bagy; uso interno)
+        produto_id: E.dados.produto.id,
+        color_id: a.idReal === null ? null : String(a.idReal), // igual à versão original (texto)
+        foto_url: foto.url,
+        imagem_existente_id: a.fotoAtualId || null,
+        todos_os_ids_para_excluir: a.todosIds || null,
+        posicao: ordem.length - indice,
+        sku: E.sku,
+        nome_variacao: a.idReal === null ? null : a.nomeCor,
+        _chave: a.chave, _img: foto.img,
       };
     });
+  }
 
-    if (!bagy.length) {
-      showToast('Vincule ao menos uma foto antes de publicar.', 'error');
-      publicandoAgora = false; // libera a trava, senão o botão "morre" até recarregar a página
-      return;
-    }
-
-    const btn = document.getElementById('btn-publicar');
-    btn.disabled = true;
-    btn.textContent = '⏳ Publicando...';
-
+  async function publicar() {
+    if (E.publicando) return;
+    const envio = montarEnvio();
+    if (!envio.length) return avisar('Vincule ao menos uma foto a uma cor.', 'erro');
+    if (envio.some(i => !i.foto_url)) return avisar('Espere as fotos terminarem de enviar.', 'erro');
+    mudar({ publicando: true, tela: 'publicando' });
+    let resultados = [];
     try {
       const res = await fetch(`${BACKEND_URL}/publicar`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ bagy }),
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bagy: envio.map(({ _chave, _img, ...resto }) => resto) }),
       });
       const data = await res.json();
-      const resultados = data.resultados?.bagy || [];
-
-      mostrarLog(resultados, bagy);
-      // Variações que deram erro (ou sem resposta) continuam com a
-      // foto vinculada depois de recarregar, para tentar de novo.
-      const falhas = bagy
-        .filter((item, i) => !resultados[i] || resultados[i].error)
-        .map(item => ({ chave: item.chave, url: item.foto_url, img: imgPorVariacao[item.chave] }));
-
-      showToast(falhas.length
-        ? `${falhas.length} variação(ões) com erro — veja abaixo e publique de novo`
-        : 'Publicação concluída — veja o resultado abaixo', falhas.length ? 'error' : 'success');
-      // Invalida o cache desse SKU — a próxima busca deve trazer
-      // os dados atualizados (novas fotos), não os antigos salvos.
-      cacheDeBuscas.delete(skuAtual);
-
-      // Recarrega as variações com os dados ATUAIS da Bagy. Sem isso,
-      // os vínculos e os IDs das fotos antigas (já excluídas) ficavam
-      // na tela — e um novo clique em "Publicar" reenviava as mesmas
-      // variações, criando fotos duplicadas.
-      await recarregarVariacoes(falhas);
-
+      resultados = data.resultados?.bagy || [];
     } catch (e) {
-      showToast(e.message, 'error');
-    } finally {
-      btn.disabled = false;
-      btn.textContent = '🚀 Publicar na Bagy';
-      publicandoAgora = false;
+      avisar('Sem resposta do servidor. Confira o resultado abaixo.', 'erro');
     }
-  }
-
-  // Busca o produto de novo (sem cache) e redesenha as variações,
-  // zerando os vínculos. As fotos já enviadas continuam no pool,
-  // para poderem ser usadas em outras variações.
-  async function recarregarVariacoes(falhas = []) {
-    vinculos = {};
-    fotosExistentesId = {};
-    todosOsIdsPorVariacao = {};
-    nomesPorVariacao = {};
-    imgPorVariacao = {};
-    try {
-      const res = await fetch(`${BACKEND_URL}/produto/${encodeURIComponent(skuAtual)}?plataformas=bagy`);
-      const data = await res.json();
-      if (!data.bagy) throw new Error('Produto não retornado pela Bagy.');
-      cacheDeBuscas.set(skuAtual, data);
-      dadosBagy = data.bagy;
-      renderVariacoes();
-      // Os IDs das fotos já vêm atualizados da Bagy, então republicar
-      // essas variações é seguro (não duplica).
-      falhas.forEach(f => { if (f.url && f.img) preencherSlot(f.chave, f.url, f.img); });
-    } catch (e) {
-      // Sem os dados atuais não dá pra publicar com segurança —
-      // esconde o botão até o usuário buscar o produto de novo.
-      document.getElementById('btn-publicar').style.display = 'none';
-      showToast('Publicado, mas não foi possível atualizar a tela. Busque o produto novamente antes de publicar outra vez.', 'error');
-    }
-    atualizarUsoDasFotos();
-  }
-
-  // Os resultados voltam na mesma ordem dos itens enviados — por
-  // isso dá pra mostrar o nome de cada variação ao lado.
-  function mostrarLog(resultadosBagy, enviados) {
-    const card = document.getElementById('card-log');
-    const log = document.getElementById('log');
-    log.innerHTML = '';
-    card.style.display = 'block';
-
-    enviados.forEach((item, i) => {
-      const r = resultadosBagy[i];
-      const nome = nomesPorVariacao[item.chave] || 'Produto';
-      const linha = document.createElement('div');
-      const ok = r && !r.error;
-      linha.className = `log-line ${ok ? 'ok' : 'err'}`;
-      linha.textContent = ok
-        ? `✓ ${nome} — publicada`
-        : `✗ ${nome} — ${r?.error || 'sem resposta do servidor'}`;
-      log.appendChild(linha);
+    const resultado = envio.map((item, i) => {
+      const r = resultados[i];
+      const alvo = E.alvos.find(a => a.chave === item._chave);
+      return { chave: item._chave, nome: alvo?.nome || 'Produto', img: item._img, url: item.foto_url, ok: !!r && !r.error, erro: r?.error || (r ? '' : 'Sem resposta do servidor') };
     });
+    const okCount = resultado.filter(r => r.ok).length;
+    if (okCount) {
+      registrarPublicado({ sku: E.sku, nome: E.dados.produto.nome, qtd: okCount, hora: new Date().toTimeString().slice(0, 5), foto: resultado.find(r => r.ok).img });
+      salvarRecente({ sku: E.sku, nome: E.dados.produto.nome, publicado: okCount === resultado.length });
+    }
+    mudar({ resultado, tela: 'resultado', publicando: false });
+    // Recarrega os dados atuais da Bagy (IDs das fotos novas) — sem
+    // isso, publicar de novo duplicaria fotos. Cores com erro ficam
+    // vinculadas para tentar outra vez.
+    await recarregar(resultado.filter(r => !r.ok));
   }
 
-  let toastTimer;
-  function showToast(msg, type) {
-    const t = document.getElementById('toast');
-    t.textContent = msg;
-    t.className = `toast show ${type}`;
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => t.classList.remove('show'), 4000);
+  async function recarregar(falhas) {
+    try {
+      const bagy = await buscarNaBagy(E.sku);
+      const vinculos = {};
+      falhas.forEach(f => { const foto = E.fotos.find(x => x.url === f.url); if (foto) vinculos[f.chave] = foto.id; });
+      Object.assign(E, { dados: bagy, alvos: montarAlvos(bagy), vinculos, selecionada: null });
+      render();
+    } catch {
+      Object.assign(E, { vinculos: {}, dados: null });
+      avisar('Publicado, mas não deu para atualizar. Busque o produto de novo antes de publicar outra vez.', 'erro');
+      render();
+    }
   }
-  // Esc fecha o lightbox ou o modal, o que estiver aberto
-  document.addEventListener('keydown', e => {
-    if (e.key !== 'Escape') return;
-    if (!document.getElementById('lightbox-overlay').classList.contains('hidden')) fecharLightbox();
-    else if (!document.getElementById('seletor-overlay').classList.contains('hidden')) fecharSeletorFoto();
-    else if (!document.getElementById('modal-overlay').classList.contains('hidden')) fecharModal();
+
+  function distribuir() {
+    const prontas = E.fotos.filter(f => !f.enviando && f.url);
+    const vinculos = {};
+    E.alvos.forEach((a, i) => { if (prontas[i]) vinculos[a.chave] = prontas[i].id; });
+    mudar({ vinculos, selecionada: null });
+  }
+
+  function moverFoto(de, para) {
+    if (de === para || de < 0 || para < 0) return;
+    const fotos = [...E.fotos];
+    const [f] = fotos.splice(de, 1);
+    fotos.splice(para, 0, f);
+    mudar({ fotos });
+  }
+
+  // ── Telas ──────────────────────────────────────────────────
+  function topo(esquerda, titulo) {
+    return `<header class="topo">${esquerda}<h1>${esc(titulo)}</h1><span class="espaco"></span></header>`;
+  }
+  const btnMenu = `<button class="icone-btn" data-acao="menu" aria-label="Abrir menu">${I.menu}</button>`;
+  const btnVoltar = `<button class="icone-btn" data-acao="inicio" aria-label="Voltar">${I.voltar}</button>`;
+
+  function telaInicio() {
+    const pub = publicadosHoje();
+    const rec = recentesLocais();
+    const pendente = rec.find(r => !r.publicado);
+    return `${topo(btnMenu, 'GSLFotos')}
+    <main class="conteudo">
+      <section class="hero">
+        <div class="hero-titulo"><span class="bolha" style="background:var(--lilas)">${I.camera('#381E72', '#D0BCFF')}</span>Publicar novo produto</div>
+        <form class="busca" data-form="busca">
+          <label class="sr" for="sku">Código do produto (SKU)</label>
+          <input id="sku" name="sku" placeholder="Código (SKU)" autocomplete="off" autocapitalize="characters" enterkeyhint="search" />
+          <button type="submit" aria-label="Buscar produto" ${E.buscando ? 'disabled' : ''}>${E.buscando ? '<i style="width:20px;height:20px;border-radius:10px;border:3px solid #381E72;border-top-color:transparent;animation:girar .9s linear infinite"></i>' : I.seta('#381E72')}</button>
+        </form>
+      </section>
+      <div class="numeros">
+        <div class="numero">${I.ok()}<b>${pub.length}</b><span>publicados<br>hoje</span></div>
+        <button class="numero" data-acao="recentes">${I.imagem('#6750A4')}<b>${rec.length}</b><span>produtos<br>recentes</span></button>
+      </div>
+      ${pendente ? `<button class="continuar" data-acao="abrir" data-sku="${esc(pendente.sku)}">
+        <span class="mini" ${bg(pendente.foto)}></span>
+        <span style="flex:1;min-width:0"><small>Continuar de onde parou</small><strong>${esc(pendente.nome || pendente.sku)}</strong></span>${I.seguir}</button>` : ''}
+      <div class="rotulo-secao">Recentes</div>
+      ${rec.length ? `<div class="grade-recentes">${rec.slice(0, 3).map(r => `
+        <button class="cartao-recente" data-acao="abrir" data-sku="${esc(r.sku)}"><span class="foto" ${bg(r.foto)}></span><span>${esc(r.sku)}</span></button>`).join('')}</div>`
+        : '<div class="vazio">Os produtos que você abrir aparecem aqui.</div>'}
+    </main>`;
+  }
+
+  function telaProduto() {
+    const p = E.dados.produto;
+    const capa = E.alvos.find(a => a.fotoAtual)?.fotoAtual;
+    const usadas = new Set(Object.values(E.vinculos));
+    const qtd = Object.keys(E.vinculos).length;
+    const temSel = E.selecionada !== null;
+    const preco = p.preco ? Number(p.preco).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '';
+    const fotos = E.fotos.map((f, i) => `
+      <div class="tile ${usadas.has(f.id) ? 'usada' : ''} ${E.selecionada === f.id ? 'selecionada' : ''} ${f.enviando ? 'enviando' : ''}" data-indice="${i}">
+        <button class="foto" data-acao="selecionar" data-id="${f.id}" aria-label="Selecionar foto ${i + 1}" style="background-image:url('${esc(f.img)}')">
+          ${usadas.has(f.id) && E.selecionada !== f.id ? `<span class="check">${I.ok()}</span>` : ''}
+        </button>
+        <span class="ordem">${i + 1}</span>
+        ${f.enviando ? '<span class="girando"><i></i></span>' : `<button class="lupa" data-acao="ampliar" data-img="${esc(f.img)}" data-titulo="Foto ${i + 1}" aria-label="Ampliar foto ${i + 1}">${I.lupa()}</button>`}
+      </div>`).join('');
+    const cores = E.alvos.map(a => {
+      const foto = E.fotos.find(f => f.id === E.vinculos[a.chave]);
+      const status = foto ? 'Foto nova escolhida' : temSel ? 'Toque para usar a foto selecionada' : E.fotos.length ? 'Selecione uma foto acima' : 'Adicione fotos primeiro';
+      return `<div class="cor ${temSel ? 'alvo' : ''}">
+        <button class="area" data-acao="vincular" data-chave="${esc(a.chave)}" aria-label="Usar a foto selecionada em ${esc(a.nome)}">
+          ${a.fotoAtual ? `<span class="quadro atual" ${bg(a.fotoAtual)}></span>${I.seta('#79747E').replace(/22/g, '16')}` : ''}
+          <span class="quadro ${foto ? 'nova' : 'vazia'}" ${foto ? bg(foto.img) : ''}>${foto ? '' : I.mais(22)}</span>
+          <span class="textos"><span class="nome">${esc(a.nome)}</span><span class="status ${foto ? 'ok' : ''}">${status}</span></span>
+        </button>
+        ${foto ? `<span class="acoes">
+          <button class="icone-btn" data-acao="ampliar" data-img="${esc(foto.img)}" data-titulo="${esc(a.nome)}" aria-label="Ampliar foto de ${esc(a.nome)}">${I.lupa('#49454F', 18)}</button>
+          <button class="icone-btn" data-acao="remover" data-chave="${esc(a.chave)}" aria-label="Remover foto de ${esc(a.nome)}">${I.fechar('#49454F')}</button></span>`
+          : (a.fotoAtual ? `<span class="acoes"><button class="icone-btn" data-acao="ampliar" data-img="${esc(a.fotoAtual)}" data-titulo="${esc(a.nome)} · foto atual" aria-label="Ampliar foto atual de ${esc(a.nome)}">${I.lupa('#49454F', 18)}</button></span>` : '')}
+      </div>`;
+    }).join('');
+    return `${topo(btnVoltar, 'Produto')}
+    <main class="conteudo">
+      <section class="cartao-produto">
+        <span class="mini" ${bg(capa)}></span>
+        <div class="info"><div class="nome">${esc(p.nome)}</div><div class="sku">${esc(p.codigo || E.sku)}</div></div>
+        ${preco ? `<span class="preco">${preco}</span>` : ''}
+      </section>
+
+      <div class="etapa"><span class="num">1</span><span class="titulo">Suas fotos</span><span class="extra">· ${E.fotos.length ? `${E.fotos.length} enviada(s)` : 'nenhuma ainda'}</span></div>
+      <div class="pool" id="pool">
+        <label class="adicionar" aria-label="Adicionar fotos">${I.mais()}Adicionar<input type="file" accept="image/*" multiple data-input="fotos" /></label>
+        ${fotos}
+      </div>
+      ${E.progresso !== null ? `<div class="progresso"><div class="linha"><span>Enviando fotos…</span><span>${E.progresso}%</span></div><div class="barra"><i style="width:${E.progresso}%"></i></div></div>` : ''}
+      <div class="dica">${E.fotos.length ? 'Segure e arraste para mudar a ordem · toque para selecionar · lupa para ampliar' : 'Toque em Adicionar para escolher da câmera ou galeria'}</div>
+
+      <div class="divisor"></div>
+
+      <div class="etapa"><span class="num">2</span><span class="titulo">Cores</span><span class="extra">· ${qtd} de ${E.alvos.length} com foto</span></div>
+      ${E.fotos.some(f => !f.enviando) && E.alvos.length > 1 ? `<button class="btn-tonal" data-acao="distribuir">${I.distribuir}Distribuir fotos na ordem</button>` : ''}
+      ${cores}
+    </main>
+    <div class="rodape">
+      <button class="btn-principal" data-acao="publicar" ${qtd && !E.publicando ? '' : 'disabled'}>${I.enviar}${qtd ? `Publicar ${qtd} foto(s) na Bagy` : 'Vincule ao menos uma foto'}</button>
+    </div>`;
+  }
+
+  function telaResultado() {
+    const ok = E.resultado.filter(r => r.ok).length;
+    const falhas = E.resultado.length - ok;
+    return `${topo('<span class="espaco"></span>', 'Resultado')}
+    <main class="conteudo">
+      <div class="resultado-topo">
+        <span class="grande" style="background:${falhas ? 'var(--erro-fundo)' : 'var(--ok-fundo)'}">${falhas ? I.erro(40) : I.ok(40)}</span>
+        <h2>${ok} de ${E.resultado.length} foto(s) publicada(s)</h2>
+        <div style="font-size:14px;color:var(--texto2)">${esc(E.dados?.produto?.nome || '')} · ${esc(E.sku)}</div>
+      </div>
+      <div class="lista">${E.resultado.map(r => `
+        <div class="item"><span class="mini" ${bg(r.img)}></span>
+          <span class="txt"><span>${esc(r.nome)}</span>${r.ok ? '' : `<small>${esc(r.erro)} A foto continua vinculada.</small>`}</span>
+          ${r.ok ? I.ok(20) : I.erro(20)}</div>`).join('')}</div>
+      ${falhas && E.dados ? `<button class="btn-contorno" data-acao="voltar-produto">${I.tentar}Tentar de novo as que falharam</button>` : ''}
+    </main>
+    <div class="rodape"><button class="btn-principal" data-acao="inicio">${I.camera('#fff', '#6750A4')}Publicar outro produto</button></div>`;
+  }
+
+  function telaRecentes() {
+    const abas = ['Recentes', 'Publicados hoje'];
+    const lista = E.aba === 0
+      ? recentesLocais().map(r => ({ ...r, info: `${r.sku} · ${r.publicado ? 'publicado' : 'sem publicar'}` }))
+      : publicadosHoje().map(p => ({ ...p, info: `${p.sku} · ${p.qtd} foto(s) · ${p.hora}` }));
+    return `${topo(btnMenu, 'Produtos recentes')}
+    <main class="conteudo">
+      <div class="abas" role="tablist">${abas.map((a, i) => `<button role="tab" aria-selected="${E.aba === i}" class="${E.aba === i ? 'ativa' : ''}" data-acao="aba" data-aba="${i}">${a}</button>`).join('')}</div>
+      ${lista.length ? lista.map(r => `
+        <button class="linha-recente" data-acao="abrir" data-sku="${esc(r.sku)}">
+          <span class="mini" ${bg(r.foto)}></span>
+          <span class="txt"><span>${esc(r.nome || r.sku)}</span><small>${esc(r.info)}</small></span>
+          <span class="bolha" style="background:var(--primaria)">${I.camera('#fff', '#6750A4')}</span>
+        </button>`).join('') : '<div class="vazio" style="padding:32px">Nada por aqui ainda.</div>'}
+      <div class="vazio">Lista salva neste aparelho.</div>
+    </main>`;
+  }
+
+  function gaveta() {
+    return `<button class="veu ${E.menu ? '' : 'oculto'}" data-acao="fechar-menu" aria-label="Fechar menu"></button>
+    <nav class="gaveta ${E.menu ? 'aberta' : ''}" aria-label="Menu" ${E.menu ? '' : 'aria-hidden="true"'}>
+      <div class="marca"><span class="bolha" style="background:var(--primaria);border-radius:12px">${I.imagem('#fff')}</span>GSLFotos</div>
+      <button class="${E.tela === 'inicio' ? 'ativo' : ''}" data-acao="inicio">${I.camera('#4A4458', '#E8DEF8', 24)}Publicar fotos</button>
+      <button class="${E.tela === 'recentes' ? 'ativo' : ''}" data-acao="recentes">${I.grade}Produtos recentes</button>
+      <div class="sep"></div>
+      <div class="sub">Atalhos</div>
+      <a href="${PASTA_DRIVE}" target="_blank" rel="noopener">${I.pasta}Abrir pasta no Drive</a>
+      <a href="antiga/">${I.antiga}Usar a versão antiga</a>
+      <div class="rodape-gaveta">Versão nova (v2)</div>
+    </nav>`;
+  }
+
+  function render() {
+    const app = document.getElementById('app');
+    const telas = {
+      inicio: telaInicio,
+      produto: () => E.dados ? telaProduto() : telaInicio(),
+      publicando: () => `${topo('<span class="espaco"></span>', 'Publicando')}<div class="carregando"><i></i>Publicando na Bagy…</div>`,
+      resultado: telaResultado,
+      recentes: telaRecentes,
+    };
+    const skuDigitado = document.getElementById('sku')?.value;
+    app.innerHTML = (telas[E.tela] || telaInicio)() + gaveta() + (E.ampliada ? `
+      <div class="ampliada" data-acao="fechar-ampliada">
+        <header class="topo"><h1>${esc(E.ampliada.titulo)}</h1><button class="icone-btn" data-acao="fechar-ampliada" aria-label="Fechar" style="background:#2B2930;color:#fff">${I.fechar('#fff')}</button></header>
+        <img src="${esc(E.ampliada.url)}" alt="${esc(E.ampliada.titulo)}" />
+      </div>` : '');
+    const campo = document.getElementById('sku');
+    if (campo && skuDigitado) campo.value = skuDigitado;
+  }
+
+  // ── Eventos (um só ouvinte para a tela toda) ────────────────
+  document.addEventListener('click', ev => {
+    if (arrasto.acabouDeArrastar) return; // o "clique" que o navegador gera ao soltar o arrasto
+    const el = ev.target.closest('[data-acao]');
+    if (!el) return;
+    const a = el.dataset.acao;
+    if (a === 'menu') return mudar({ menu: true });
+    if (a === 'fechar-menu') return mudar({ menu: false });
+    if (a === 'inicio') return mudar({ tela: 'inicio', menu: false });
+    if (a === 'recentes') return mudar({ tela: 'recentes', menu: false });
+    if (a === 'aba') return mudar({ aba: Number(el.dataset.aba) });
+    if (a === 'abrir') return abrirProduto(el.dataset.sku);
+    if (a === 'voltar-produto') return mudar({ tela: 'produto' });
+    if (a === 'ampliar') { ev.stopPropagation(); return mudar({ ampliada: { url: el.dataset.img, titulo: el.dataset.titulo } }); }
+    if (a === 'fechar-ampliada') return mudar({ ampliada: null });
+    if (a === 'selecionar') {
+      const f = E.fotos.find(x => x.id === el.dataset.id);
+      if (!f || f.enviando) return;
+      return mudar({ selecionada: E.selecionada === f.id ? null : f.id });
+    }
+    if (a === 'vincular') {
+      if (E.selecionada === null) return avisar(E.fotos.length ? 'Toque numa foto acima primeiro.' : 'Adicione as fotos primeiro.');
+      return mudar({ vinculos: { ...E.vinculos, [el.dataset.chave]: E.selecionada }, selecionada: null });
+    }
+    if (a === 'remover') { const v = { ...E.vinculos }; delete v[el.dataset.chave]; return mudar({ vinculos: v }); }
+    if (a === 'distribuir') return distribuir();
+    if (a === 'publicar') return publicar();
   });
-</script>
+  document.addEventListener('submit', ev => {
+    if (ev.target.dataset.form !== 'busca') return;
+    ev.preventDefault();
+    abrirProduto(new FormData(ev.target).get('sku'));
+  });
+  document.addEventListener('change', ev => {
+    if (ev.target.dataset.input !== 'fotos') return;
+    adicionarFotos(Array.from(ev.target.files || []));
+  });
+  document.addEventListener('keydown', ev => {
+    if (ev.key !== 'Escape') return;
+    if (E.ampliada) mudar({ ampliada: null }); else if (E.menu) mudar({ menu: false });
+  });
 
+  // ── Arrastar para reordenar (dedo ou mouse) ─────────────────
+  // Segurar ~0,25s numa foto e arrastar. Um toque rápido continua
+  // selecionando, e deslizar sem segurar continua rolando a tela.
+  const arrasto = { timer: null, ativo: false, de: -1, alvo: -1, x: 0, y: 0, acabouDeArrastar: false };
+  function impedirRolagem(ev) { if (arrasto.ativo) ev.preventDefault(); }
+  document.addEventListener('touchmove', impedirRolagem, { passive: false });
+  document.addEventListener('pointerdown', ev => {
+    const tile = ev.target.closest('.tile');
+    if (!tile || ev.target.closest('.lupa') || E.fotos[Number(tile.dataset.indice)]?.enviando) return;
+    arrasto.de = Number(tile.dataset.indice); arrasto.x = ev.clientX; arrasto.y = ev.clientY;
+    clearTimeout(arrasto.timer);
+    arrasto.timer = setTimeout(() => {
+      arrasto.ativo = true; arrasto.alvo = arrasto.de;
+      tile.classList.add('arrastando');
+      navigator.vibrate?.(15);
+    }, 250);
+  });
+  document.addEventListener('pointermove', ev => {
+    if (!arrasto.ativo) {
+      if (arrasto.timer && Math.hypot(ev.clientX - arrasto.x, ev.clientY - arrasto.y) > 10) { clearTimeout(arrasto.timer); arrasto.timer = null; }
+      return;
+    }
+    const sob = document.elementFromPoint(ev.clientX, ev.clientY)?.closest('.tile');
+    document.querySelectorAll('.tile.alvo-drop').forEach(t => t.classList.remove('alvo-drop'));
+    if (sob) { arrasto.alvo = Number(sob.dataset.indice); if (arrasto.alvo !== arrasto.de) sob.classList.add('alvo-drop'); }
+  });
+  function terminarArrasto() {
+    clearTimeout(arrasto.timer); arrasto.timer = null;
+    if (!arrasto.ativo) return;
+    arrasto.ativo = false; arrasto.acabouDeArrastar = true;
+    setTimeout(() => { arrasto.acabouDeArrastar = false; }, 0);
+    if (arrasto.alvo !== arrasto.de) moverFoto(arrasto.de, arrasto.alvo); else render();
+  }
+  document.addEventListener('pointerup', terminarArrasto);
+  document.addEventListener('pointercancel', terminarArrasto);
+  document.addEventListener('contextmenu', ev => { if (ev.target.closest('.tile')) ev.preventDefault(); });
+
+  // Acorda o servidor enquanto a pessoa digita o SKU.
+  fetch(`${BACKEND_URL}/health`).catch(() => {});
+  render();
+</script>
 </body>
 </html>
