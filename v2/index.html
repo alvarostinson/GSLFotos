@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#F7F2FA" />
+<title>GSLFotos — Publicar</title>
+<link rel="manifest" href="manifest.json" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Roboto+Mono:wght@500&display=swap" />
+<!--
+  GSLFotos v2 — versão nova, separada da original (../index.html).
+  As duas usam o MESMO backend e as mesmas regras de publicação.
+  Se esta versão não for aprovada, basta voltar a usar o endereço
+  antigo: nada da versão original foi alterado.
+-->
+<style>
+  :root {
+    --primaria: #6750A4; --primaria-escura: #4F378B; --sobre-primaria: #FFFFFF;
+    --tonal: #E8DEF8; --sobre-tonal: #1D192B;
+    --rosa: #FFD8E4; --sobre-rosa: #31111D; --rosa-escuro: #7D5260;
+    --fundo: #F7F2FA; --superficie: #FFFFFF; --superficie2: #F3EDF7; --superficie3: #ECE6F0;
+    --texto: #1D1B20; --texto2: #49454F; --borda: #CAC4D0; --contorno: #79747E;
+    --escuro: #1D1B20; --escuro2: #2B2930; --lilas: #D0BCFF; --sobre-lilas: #381E72;
+    --ok: #146C2E; --ok-fundo: #C4EED0; --erro: #B3261E; --erro-fundo: #FFDAD6;
+    --raio: 20px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { background: var(--fundo); }
+  body { font-family: Roboto, system-ui, sans-serif; color: var(--texto); min-height: 100dvh; }
+  button { font-family: inherit; cursor: pointer; color: inherit; }
+  input { font-family: inherit; }
+  .app { max-width: 480px; margin: 0 auto; min-height: 100dvh; display: flex; flex-direction: column; }
+  .oculto { display: none !important; }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+
+  /* Barra do topo */
+  .topo { height: 56px; display: flex; align-items: center; padding: 0 8px 0 4px; flex-shrink: 0; position: sticky; top: 0; background: var(--fundo); z-index: 10; }
+  .topo h1 { flex: 1; text-align: center; font-size: 19px; font-weight: 500; }
+  .topo .espaco { width: 48px; }
+  .icone-btn { width: 48px; height: 48px; border: none; background: none; border-radius: 24px; display: flex; align-items: center; justify-content: center; }
+  .icone-btn:active { background: var(--superficie3); }
+
+  .conteudo { flex: 1; padding: 0 16px 16px; display: flex; flex-direction: column; gap: 10px; }
+
+  /* Início */
+  .hero { background: var(--escuro); color: #fff; border-radius: 24px; padding: 16px; display: flex; flex-direction: column; align-items: center; gap: 12px; }
+  .hero-titulo { display: flex; align-items: center; gap: 10px; font-size: 18px; }
+  .bolha { width: 36px; height: 36px; border-radius: 18px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .busca { width: 100%; height: 56px; border-radius: 28px; background: var(--escuro2); display: flex; align-items: center; gap: 8px; padding: 0 6px 0 20px; }
+  .busca input { flex: 1; min-width: 0; border: none; outline: none; background: none; color: #fff; font-family: 'Roboto Mono', monospace; font-size: 17px; letter-spacing: 2px; text-align: center; text-transform: uppercase; }
+  .busca input::placeholder { color: #938F99; letter-spacing: 1px; text-transform: none; font-family: Roboto, sans-serif; }
+  .busca button { width: 44px; height: 44px; border: none; border-radius: 22px; background: var(--lilas); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .busca button:disabled { opacity: .5; }
+  .numeros { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .numero { background: var(--superficie); border: none; border-radius: 16px; padding: 10px 12px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+  .numero b { font-size: 20px; font-weight: 500; }
+  .numero span { font-size: 11px; color: var(--texto2); line-height: 13px; text-align: left; }
+  .continuar { background: var(--rosa); border: none; border-radius: 16px; padding: 8px 12px; display: flex; align-items: center; gap: 12px; color: var(--sobre-rosa); text-align: left; width: 100%; }
+  .continuar .mini { width: 40px; height: 40px; border-radius: 12px; background: #EBCFC6 center/cover; flex-shrink: 0; }
+  .continuar small { display: block; font-size: 12px; color: var(--rosa-escuro); font-weight: 500; }
+  .continuar strong { font-size: 15px; font-weight: 500; }
+  .rotulo-secao { text-align: center; font-size: 13px; font-weight: 500; color: var(--texto2); }
+  .grade-recentes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .cartao-recente { background: var(--superficie); border: none; border-radius: 16px; padding: 6px; display: flex; flex-direction: column; gap: 4px; }
+  .cartao-recente .foto { height: 64px; border-radius: 12px; background: var(--superficie3) center/cover; }
+  .cartao-recente span { font-size: 11px; text-align: center; font-family: 'Roboto Mono', monospace; }
+  .vazio { text-align: center; font-size: 12px; color: var(--texto2); padding: 8px; }
+
+  /* Produto */
+  .cartao-produto { background: var(--superficie); border: 1px solid var(--borda); border-radius: 16px; padding: 8px 12px 8px 8px; display: flex; align-items: center; gap: 10px; }
+  .cartao-produto .mini { width: 44px; height: 44px; border-radius: 10px; background: var(--superficie3) center/cover; flex-shrink: 0; }
+  .cartao-produto .info { flex: 1; min-width: 0; }
+  .cartao-produto .nome { font-size: 15px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .cartao-produto .sku { font-size: 11px; color: var(--texto2); font-family: 'Roboto Mono', monospace; }
+  .preco { height: 28px; padding: 0 10px; border-radius: 14px; background: var(--tonal); color: var(--sobre-tonal); font-size: 14px; font-weight: 500; display: flex; align-items: center; flex-shrink: 0; }
+  .etapa { display: flex; align-items: center; justify-content: center; gap: 8px; padding-top: 6px; }
+  .etapa .num { width: 24px; height: 24px; border-radius: 12px; background: var(--primaria); color: #fff; font-size: 13px; font-weight: 500; display: flex; align-items: center; justify-content: center; }
+  .etapa .titulo { font-size: 16px; font-weight: 500; }
+  .etapa .extra { font-size: 12px; color: var(--texto2); }
+  .pool { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+  .tile { width: 60px; height: 60px; position: relative; flex-shrink: 0; touch-action: manipulation; user-select: none; -webkit-user-select: none; }
+  .tile .foto { width: 60px; height: 60px; border-radius: 12px; border: none; padding: 0; background: var(--superficie3) center/cover; display: flex; align-items: center; justify-content: center; }
+  .tile.usada .foto { opacity: .45; }
+  .tile.selecionada .foto { opacity: 1; outline: 3px solid var(--primaria); outline-offset: 2px; }
+  .tile.arrastando { opacity: .3; }
+  .tile.alvo-drop .foto { outline: 3px dashed var(--primaria); outline-offset: 2px; }
+  .tile .ordem { position: absolute; top: 2px; left: 2px; min-width: 18px; height: 18px; border-radius: 9px; background: var(--primaria); color: #fff; font-size: 11px; font-weight: 500; display: flex; align-items: center; justify-content: center; pointer-events: none; }
+  .tile .lupa { position: absolute; bottom: 2px; right: 2px; width: 22px; height: 22px; border: none; border-radius: 11px; background: #1D1B20B3; display: flex; align-items: center; justify-content: center; padding: 0; }
+  .tile .check { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; }
+  .tile.enviando .foto { opacity: .5; }
+  .tile .girando { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; }
+  .tile .girando i { width: 22px; height: 22px; border-radius: 11px; border: 3px solid #fff; border-top-color: var(--primaria); animation: girar 0.9s linear infinite; }
+  @keyframes girar { to { transform: rotate(360deg); } }
+  .adicionar { width: 60px; height: 60px; border: 2px dashed var(--primaria); border-radius: 12px; background: #F7F2FA; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: var(--primaria); font-size: 10px; font-weight: 500; position: relative; overflow: hidden; }
+  .adicionar input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+  .progresso { display: flex; flex-direction: column; gap: 6px; }
+  .progresso .linha { display: flex; justify-content: space-between; font-size: 12px; color: var(--texto2); }
+  .progresso .barra { height: 6px; border-radius: 3px; background: var(--tonal); overflow: hidden; }
+  .progresso .barra i { display: block; height: 6px; background: var(--primaria); transition: width .2s; }
+  .dica { font-size: 11px; color: var(--texto2); text-align: center; }
+  .divisor { height: 1px; background: var(--borda); margin: 6px 48px; }
+  .btn-tonal { align-self: center; height: 36px; padding: 0 14px; border: none; border-radius: 18px; background: var(--superficie2); color: var(--primaria); font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 6px; }
+  .cor { display: flex; align-items: center; gap: 8px; padding: 10px; border-radius: 20px; background: var(--superficie); border: 1px solid var(--borda); }
+  .cor.alvo { background: #EADDFF; border: 2px solid var(--primaria); }
+  .cor .area { flex: 1; min-width: 0; border: none; background: none; padding: 0; display: flex; align-items: center; gap: 8px; text-align: left; }
+  .quadro { width: 52px; height: 52px; border-radius: 10px; flex-shrink: 0; background: var(--superficie3) center/cover; display: flex; align-items: center; justify-content: center; }
+  .quadro.atual { opacity: .5; }
+  .quadro.nova { outline: 2px solid var(--ok); }
+  .quadro.vazia { background: #F7F2FA; border: 2px dashed var(--primaria); }
+  .cor .textos { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+  .cor .nome { font-size: 15px; font-weight: 500; }
+  .cor .status { font-size: 12px; color: var(--texto2); }
+  .cor .status.ok { color: var(--ok); }
+  .cor .acoes { display: flex; flex-direction: column; }
+  .cor .acoes button { width: 36px; height: 36px; }
+  .rodape { position: sticky; bottom: 0; padding: 12px 16px calc(12px + env(safe-area-inset-bottom)); background: var(--superficie2); border-radius: 24px 24px 0 0; }
+  .btn-principal { width: 100%; height: 56px; border: none; border-radius: 28px; background: var(--primaria); color: #fff; font-size: 16px; font-weight: 500; display: flex; align-items: center; justify-content: center; gap: 8px; }
+  .btn-principal:disabled { background: var(--borda); }
+  .btn-contorno { width: 100%; height: 48px; border: 1px solid var(--contorno); border-radius: 24px; background: none; color: var(--primaria); font-size: 14px; font-weight: 500; display: flex; align-items: center; justify-content: center; gap: 8px; }
+
+  /* Resultado */
+  .resultado-topo { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 16px 0 8px; text-align: center; }
+  .resultado-topo .grande { width: 72px; height: 72px; border-radius: 36px; display: flex; align-items: center; justify-content: center; }
+  .resultado-topo h2 { font-size: 22px; font-weight: 400; }
+  .lista { background: var(--superficie); border: 1px solid var(--borda); border-radius: 20px; padding: 4px 16px; }
+  .lista .item { display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 6px 0; border-bottom: 1px solid var(--superficie3); }
+  .lista .item:last-child { border-bottom: none; }
+  .lista .item .mini { width: 36px; height: 36px; border-radius: 8px; background: var(--superficie3) center/cover; flex-shrink: 0; }
+  .lista .item .txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+  .lista .item .txt small { font-size: 12px; color: var(--erro); }
+
+  /* Recentes */
+  .abas { display: flex; border-bottom: 1px solid var(--borda); margin: 0 -16px; }
+  .abas button { flex: 1; height: 48px; border: none; background: none; font-size: 14px; font-weight: 500; color: var(--texto2); border-bottom: 3px solid transparent; }
+  .abas button.ativa { color: var(--primaria); border-bottom-color: var(--primaria); }
+  .linha-recente { display: flex; align-items: center; gap: 14px; padding: 10px 0; border: none; background: none; width: 100%; text-align: left; }
+  .linha-recente .mini { width: 52px; height: 52px; border-radius: 12px; background: var(--superficie3) center/cover; flex-shrink: 0; }
+  .linha-recente .txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+  .linha-recente .txt span { font-size: 15px; }
+  .linha-recente .txt small { font-size: 12px; color: var(--texto2); }
+
+  /* Menu lateral */
+  .veu { position: fixed; inset: 0; background: #1D1B2066; z-index: 50; border: none; }
+  .gaveta { position: fixed; top: 0; bottom: 0; left: 0; width: min(310px, 85vw); background: var(--superficie2); border-radius: 0 16px 16px 0; padding: 12px; z-index: 51; display: flex; flex-direction: column; gap: 2px; transform: translateX(-105%); transition: transform .22s ease; }
+  .gaveta.aberta { transform: none; }
+  .gaveta .marca { padding: 16px 16px 20px; display: flex; align-items: center; gap: 12px; font-size: 18px; font-weight: 500; }
+  .gaveta button, .gaveta a { height: 52px; border: none; border-radius: 26px; background: none; padding: 0 16px; display: flex; align-items: center; gap: 12px; font-size: 14px; font-weight: 500; color: var(--texto); text-decoration: none; width: 100%; }
+  .gaveta .ativo { background: var(--tonal); color: var(--sobre-tonal); }
+  .gaveta .sep { height: 1px; background: var(--borda); margin: 8px 16px; }
+  .gaveta .sub { padding: 8px 16px; font-size: 13px; font-weight: 500; color: var(--texto2); }
+  .gaveta .rodape-gaveta { margin-top: auto; font-size: 11px; color: var(--texto2); padding: 8px 16px; }
+
+  /* Foto ampliada */
+  .ampliada { position: fixed; inset: 0; background: #0E0D11; z-index: 60; display: flex; flex-direction: column; }
+  .ampliada .topo { background: none; color: #fff; }
+  .ampliada .topo h1 { text-align: left; padding-left: 12px; font-size: 16px; }
+  .ampliada img { flex: 1; min-height: 0; width: 100%; object-fit: contain; padding: 16px; }
+
+  /* Aviso */
+  .aviso { position: fixed; left: 50%; bottom: 96px; transform: translateX(-50%) translateY(140px); background: var(--escuro); color: #fff; padding: 12px 18px; border-radius: 12px; font-size: 14px; z-index: 70; max-width: 90vw; transition: transform .25s, opacity .25s; text-align: center; opacity: 0; visibility: hidden; pointer-events: none; }
+  .aviso.mostrar { transform: translateX(-50%) translateY(0); opacity: 1; visibility: visible; }
+  .aviso.erro { background: var(--erro); }
+
+  .carregando { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; font-size: 17px; }
+  .carregando i { width: 56px; height: 56px; border-radius: 28px; border: 6px solid var(--tonal); border-top-color: var(--primaria); animation: girar 0.9s linear infinite; }
+</style>
+</head>
+<body>
+<div class="app" id="app"></div>
+<div class="aviso" id="aviso" role="status" aria-live="polite"></div>
+
+<script>
+  const BACKEND_URL = 'https://gsnfotos-v3.onrender.com';
+  const PASTA_DRIVE = 'https://drive.google.com/drive/folders/1VVVFN0QXS_lClJzdlWFVS0FO1zFP49bx?usp=sharing';
+
+  // ── Ícones (flat, preenchidos) ─────────────────────────────
+  const I = {
+    menu: '<svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>',
+    voltar: '<svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M20 11H7.8l5.6-5.6L12 4l-8 8 8 8 1.4-1.4L7.8 13H20z"/></svg>',
+    seta: c => `<svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path fill="${c}" d="M4 11h12.2l-5.6-5.6L12 4l8 8-8 8-1.4-1.4 5.6-5.6H4z"/></svg>`,
+    camera: (c, f, t = 20) => `<svg width="${t}" height="${t}" viewBox="0 0 24 24" aria-hidden="true"><path fill="${c}" d="M20 5h-3.2L15 3H9L7.2 5H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2z"/><circle cx="12" cy="13" r="4" fill="${f}"/><circle cx="12" cy="13" r="2.2" fill="${c}"/></svg>`,
+    ok: (t = 22) => `<svg width="${t}" height="${t}" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="#146C2E"/><path d="M7.5 12.5l3 3 6-6.5" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+    erro: (t = 22) => `<svg width="${t}" height="${t}" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="#B3261E"/><path d="M12 7v6" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/><circle cx="12" cy="16.5" r="1.3" fill="#fff"/></svg>`,
+    imagem: c => `<svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path fill="${c}" d="M21 3H3a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h18a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2zM5 17l3.5-4.5 2.5 3 3.5-4.5L19 17H5z"/></svg>`,
+    mais: (t = 20) => `<svg width="${t}" height="${t}" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="#6750A4"/><path d="M12 7v10M7 12h10" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/></svg>`,
+    lupa: (c = '#fff', t = 13) => `<svg width="${t}" height="${t}" viewBox="0 0 24 24" aria-hidden="true"><path fill="${c}" d="M15.5 14h-.8l-.3-.3A6.5 6.5 0 1 0 14 15.5l.3.3v.8l5 5 1.5-1.5-5-5zm-6 0A4.5 4.5 0 1 1 14 9.5 4.5 4.5 0 0 1 9.5 14z"/></svg>`,
+    fechar: (c = 'currentColor') => `<svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path fill="${c}" d="M18.3 5.7 12 12l6.3 6.3-1.4 1.4L10.6 13.4 4.3 19.7l-1.4-1.4L9.2 12 2.9 5.7l1.4-1.4 6.3 6.3 6.3-6.3z"/></svg>`,
+    distribuir: '<svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path fill="#6750A4" d="M14 4l2.3 2.3-2.9 2.9 1.4 1.4 2.9-2.9L20 10V4zM10 4H4v6l2.3-2.3 4.7 4.7V20h2v-8.4L7.7 6.3z"/></svg>',
+    enviar: '<svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path fill="#fff" d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg>',
+    seguir: '<svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path fill="#7D5260" d="M8.6 16.6 13.2 12 8.6 7.4 10 6l6 6-6 6z"/></svg>',
+    grade: '<svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path fill="#49454F" d="M4 4h7v7H4zm9 0h7v7h-7zM4 13h7v7H4zm9 0h7v7h-7z"/></svg>',
+    pasta: '<svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path fill="#49454F" d="M10 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-8z"/></svg>',
+    relogio: '<svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="#49454F"/><path d="M12 7v5l3 2" fill="none" stroke="#F3EDF7" stroke-width="2" stroke-linecap="round"/></svg>',
+    antiga: '<svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path fill="#49454F" d="M13 3a9 9 0 0 0-9 9H1l3.9 3.9L9 12H6a7 7 0 1 1 2.1 5l-1.4 1.4A9 9 0 1 0 13 3zm-1 5v5l4.3 2.5.7-1.2-3.5-2.1V8z"/></svg>',
+    tentar: '<svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path fill="#6750A4" d="M17.6 6.4A8 8 0 1 0 19.7 14h-2.1A6 6 0 1 1 12 6c1.7 0 3.1.7 4.2 1.8L13 11h7V4z"/></svg>',
+  };
+
+  // ── Utilidades ─────────────────────────────────────────────
+  const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const bg = url => url ? `style="background-image:url('${esc(url)}')"` : '';
+  const hoje = () => new Date().toISOString().slice(0, 10);
+  function lerLocal(chave, padrao) { try { return JSON.parse(localStorage.getItem(chave)) ?? padrao; } catch { return padrao; } }
+  function gravarLocal(chave, valor) { try { localStorage.setItem(chave, JSON.stringify(valor)); } catch {} }
+  let avisoTimer;
+  function avisar(msg, tipo = '') {
+    const el = document.getElementById('aviso');
+    el.textContent = msg; el.className = `aviso mostrar ${tipo}`;
+    clearTimeout(avisoTimer); avisoTimer = setTimeout(() => el.classList.remove('mostrar'), 4000);
+  }
+
+  // Histórico local (neste aparelho): produtos abertos e publicados.
+  // Os mesmos dados da versão antiga (gsnfotos_historico) continuam lá.
+  function recentesLocais() { return lerLocal('gslv2_recentes', []); }
+  function salvarRecente(info) {
+    const lista = recentesLocais().filter(r => r.sku !== info.sku);
+    lista.unshift({ ...lista.find(r => r.sku === info.sku), ...info, quando: Date.now() });
+    gravarLocal('gslv2_recentes', lista.slice(0, 30));
+  }
+  function publicadosHoje() {
+    const p = lerLocal('gslv2_publicados', { dia: hoje(), lista: [] });
+    return p.dia === hoje() ? p.lista : [];
+  }
+  function registrarPublicado(item) {
+    const lista = publicadosHoje().filter(p => p.sku !== item.sku);
+    lista.unshift(item);
+    gravarLocal('gslv2_publicados', { dia: hoje(), lista });
+  }
+
+  // ── Estado da tela ─────────────────────────────────────────
+  const E = {
+    tela: 'inicio',        // inicio | carregando | produto | publicando | resultado | recentes
+    aba: 0,                // aba da tela Recentes
+    menu: false,
+    ampliada: null,        // { url, titulo }
+    buscando: false,
+    sku: null,
+    dados: null,           // resposta da Bagy (produto + variações)
+    alvos: [],             // variações agrupadas por cor: { chave, idReal, nome, codigo, fotoAtual, fotoAtualId, todosIds }
+    fotos: [],             // fotos enviadas: { id, url (link público), img (miniatura local), enviando }
+    selecionada: null,     // id da foto selecionada
+    vinculos: {},          // chave da cor -> id da foto
+    progresso: null,       // 0-100 enquanto envia
+    publicando: false,     // trava contra publicação duplicada
+    resultado: null,       // [{ chave, nome, img, ok, erro }]
+  };
+  let contadorFoto = 0;
+
+  function mudar(parcial) { Object.assign(E, parcial); render(); }
+
+  // ── Backend ────────────────────────────────────────────────
+  async function buscarNaBagy(sku) {
+    const res = await fetch(`${BACKEND_URL}/produto/${encodeURIComponent(sku)}?plataformas=bagy`);
+    let data;
+    try { data = await res.json(); } catch { throw new Error('O servidor não respondeu direito. Tente de novo em alguns segundos.'); }
+    if (!data.bagy) {
+      const erros = (data.erros || []).filter(e => !e.toLowerCase().includes('bling'));
+      throw new Error(erros.join(' ') || 'Produto não encontrado na Bagy.');
+    }
+    return data.bagy;
+  }
+
+  // Agrupa variações com o mesmo color_id (ex: anéis Prata 17/18/19
+  // usam uma foto só) — mesma regra da versão original.
+  function montarAlvos(bagy) {
+    const brutos = bagy.variacoes?.length
+      ? bagy.variacoes
+      : [{ id: bagy.produto.id, codigo: bagy.produto.codigo, nome: 'Produto (sem variação)' }];
+    const mapa = new Map();
+    brutos.forEach(v => {
+      const chave = (v.id !== null && v.id !== undefined) ? String(v.id) : 'null';
+      if (!mapa.has(chave)) mapa.set(chave, { ...v, chave, idReal: v.id ?? null, codigos: [v.codigo] });
+      else mapa.get(chave).codigos.push(v.codigo);
+    });
+    return Array.from(mapa.values()).map(v => ({
+      chave: v.chave, idReal: v.idReal, codigo: v.codigo,
+      nome: v.codigos.length > 1 ? `${v.nome} (${v.codigos.length} tamanhos)` : (v.nome || v.codigo),
+      nomeCor: v.nome || v.codigo,
+      fotoAtual: v.fotoAtual || null, fotoAtualId: v.fotoAtualId || null,
+      todosIds: v.todosOsFotoAtualIds || null,
+    }));
+  }
+
+  async function abrirProduto(skuDigitado) {
+    const sku = (skuDigitado || '').trim().toUpperCase();
+    if (!sku || E.buscando) return;
+    mudar({ buscando: true, menu: false });
+    try {
+      const bagy = await buscarNaBagy(sku);
+      contadorFoto = 0;
+      mudar({ tela: 'produto', sku, dados: bagy, alvos: montarAlvos(bagy), fotos: [], vinculos: {}, selecionada: null, resultado: null, buscando: false });
+      salvarRecente({ sku, nome: bagy.produto.nome, foto: bagy.variacoes?.find(v => v.fotoAtual)?.fotoAtual || null, publicado: false });
+      window.scrollTo(0, 0);
+    } catch (e) {
+      mudar({ buscando: false });
+      avisar(e.message, 'erro');
+    }
+  }
+
+  // Reduz a foto no aparelho para no máximo 2000px (qualidade 95%) —
+  // o servidor nunca usa mais que isso. Fotos até 1,5MB vão como estão.
+  async function prepararFoto(file) {
+    try {
+      if (file.size <= 1.5 * 1024 * 1024) return file;
+      const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
+      const escala = Math.min(1, 2000 / Math.max(bitmap.width, bitmap.height));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(bitmap.width * escala);
+      canvas.height = Math.round(bitmap.height * escala);
+      const ctx = canvas.getContext('2d');
+      ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+      bitmap.close?.();
+      const blob = await new Promise(r => canvas.toBlob(r, 'image/jpeg', 0.95));
+      if (!blob || blob.size >= file.size) return file;
+      return new File([blob], file.name.replace(/\.[^.]+$/, '') + '.jpg', { type: 'image/jpeg' });
+    } catch { return file; }
+  }
+
+  // Envio com barra de progresso real (bytes enviados).
+  function enviarComProgresso(form) {
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', `${BACKEND_URL}/upload-temporario`);
+      xhr.upload.onprogress = ev => { if (ev.lengthComputable) mudar({ progresso: Math.round(ev.loaded / ev.total * 95) }); };
+      xhr.onload = () => {
+        let data; try { data = JSON.parse(xhr.responseText); } catch { return reject(new Error('O servidor não respondeu direito. Tente de novo.')); }
+        if (xhr.status >= 400) return reject(new Error(data.error || 'Falha ao enviar as fotos.'));
+        resolve(data);
+      };
+      xhr.onerror = () => reject(new Error('Sem conexão com o servidor. Tente de novo.'));
+      xhr.send(form);
+    });
+  }
+
+  async function adicionarFotos(files) {
+    if (!files.length || !E.sku) return;
+    const novas = files.map(f => ({ id: `f${++contadorFoto}`, url: null, img: URL.createObjectURL(f), enviando: true }));
+    mudar({ fotos: [...E.fotos, ...novas], progresso: 0 });
+    try {
+      const preparadas = await Promise.all(files.map(prepararFoto));
+      const form = new FormData();
+      form.append('sku', E.sku);
+      preparadas.forEach(f => form.append('fotos', f));
+      const data = await enviarComProgresso(form);
+      data.fotos.forEach((foto, i) => { if (novas[i]) { novas[i].url = foto.url; novas[i].enviando = false; } });
+      mudar({ progresso: null });
+    } catch (e) {
+      const ids = new Set(novas.map(n => n.id));
+      mudar({ fotos: E.fotos.filter(f => !ids.has(f.id)), progresso: null });
+      avisar(e.message, 'erro');
+    }
+  }
+
+  // Monta o envio exatamente como a versão original: a ÚLTIMA cor da
+  // lista vira a capa (position 1); IDs de todas as fotos antigas vão
+  // junto para serem trocadas (não duplicar); SKU + nome da cor
+  // renomeiam a foto no Drive.
+  function montarEnvio() {
+    const ordem = E.alvos.map(a => a.chave);
+    return E.alvos.filter(a => E.vinculos[a.chave]).map(a => {
+      const foto = E.fotos.find(f => f.id === E.vinculos[a.chave]);
+      const indice = ordem.indexOf(a.chave);
+      return {
+        produto_id: E.dados.produto.id,
+        color_id: a.idReal === null ? null : String(a.idReal), // igual à versão original (texto)
+        foto_url: foto.url,
+        imagem_existente_id: a.fotoAtualId || null,
+        todos_os_ids_para_excluir: a.todosIds || null,
+        posicao: ordem.length - indice,
+        sku: E.sku,
+        nome_variacao: a.idReal === null ? null : a.nomeCor,
+        _chave: a.chave, _img: foto.img,
+      };
+    });
+  }
+
+  async function publicar() {
+    if (E.publicando) return;
+    const envio = montarEnvio();
+    if (!envio.length) return avisar('Vincule ao menos uma foto a uma cor.', 'erro');
+    if (envio.some(i => !i.foto_url)) return avisar('Espere as fotos terminarem de enviar.', 'erro');
+    mudar({ publicando: true, tela: 'publicando' });
+    let resultados = [];
+    try {
+      const res = await fetch(`${BACKEND_URL}/publicar`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bagy: envio.map(({ _chave, _img, ...resto }) => resto) }),
+      });
+      const data = await res.json();
+      resultados = data.resultados?.bagy || [];
+    } catch (e) {
+      avisar('Sem resposta do servidor. Confira o resultado abaixo.', 'erro');
+    }
+    const resultado = envio.map((item, i) => {
+      const r = resultados[i];
+      const alvo = E.alvos.find(a => a.chave === item._chave);
+      return { chave: item._chave, nome: alvo?.nome || 'Produto', img: item._img, url: item.foto_url, ok: !!r && !r.error, erro: r?.error || (r ? '' : 'Sem resposta do servidor') };
+    });
+    const okCount = resultado.filter(r => r.ok).length;
+    if (okCount) {
+      registrarPublicado({ sku: E.sku, nome: E.dados.produto.nome, qtd: okCount, hora: new Date().toTimeString().slice(0, 5), foto: resultado.find(r => r.ok).img });
+      salvarRecente({ sku: E.sku, nome: E.dados.produto.nome, publicado: okCount === resultado.length });
+    }
+    mudar({ resultado, tela: 'resultado', publicando: false });
+    // Recarrega os dados atuais da Bagy (IDs das fotos novas) — sem
+    // isso, publicar de novo duplicaria fotos. Cores com erro ficam
+    // vinculadas para tentar outra vez.
+    await recarregar(resultado.filter(r => !r.ok));
+  }
+
+  async function recarregar(falhas) {
+    try {
+      const bagy = await buscarNaBagy(E.sku);
+      const vinculos = {};
+      falhas.forEach(f => { const foto = E.fotos.find(x => x.url === f.url); if (foto) vinculos[f.chave] = foto.id; });
+      Object.assign(E, { dados: bagy, alvos: montarAlvos(bagy), vinculos, selecionada: null });
+      render();
+    } catch {
+      Object.assign(E, { vinculos: {}, dados: null });
+      avisar('Publicado, mas não deu para atualizar. Busque o produto de novo antes de publicar outra vez.', 'erro');
+      render();
+    }
+  }
+
+  function distribuir() {
+    const prontas = E.fotos.filter(f => !f.enviando && f.url);
+    const vinculos = {};
+    E.alvos.forEach((a, i) => { if (prontas[i]) vinculos[a.chave] = prontas[i].id; });
+    mudar({ vinculos, selecionada: null });
+  }
+
+  function moverFoto(de, para) {
+    if (de === para || de < 0 || para < 0) return;
+    const fotos = [...E.fotos];
+    const [f] = fotos.splice(de, 1);
+    fotos.splice(para, 0, f);
+    mudar({ fotos });
+  }
+
+  // ── Telas ──────────────────────────────────────────────────
+  function topo(esquerda, titulo) {
+    return `<header class="topo">${esquerda}<h1>${esc(titulo)}</h1><span class="espaco"></span></header>`;
+  }
+  const btnMenu = `<button class="icone-btn" data-acao="menu" aria-label="Abrir menu">${I.menu}</button>`;
+  const btnVoltar = `<button class="icone-btn" data-acao="inicio" aria-label="Voltar">${I.voltar}</button>`;
+
+  function telaInicio() {
+    const pub = publicadosHoje();
+    const rec = recentesLocais();
+    const pendente = rec.find(r => !r.publicado);
+    return `${topo(btnMenu, 'GSLFotos')}
+    <main class="conteudo">
+      <section class="hero">
+        <div class="hero-titulo"><span class="bolha" style="background:var(--lilas)">${I.camera('#381E72', '#D0BCFF')}</span>Publicar novo produto</div>
+        <form class="busca" data-form="busca">
+          <label class="sr" for="sku">Código do produto (SKU)</label>
+          <input id="sku" name="sku" placeholder="Código (SKU)" autocomplete="off" autocapitalize="characters" enterkeyhint="search" />
+          <button type="submit" aria-label="Buscar produto" ${E.buscando ? 'disabled' : ''}>${E.buscando ? '<i style="width:20px;height:20px;border-radius:10px;border:3px solid #381E72;border-top-color:transparent;animation:girar .9s linear infinite"></i>' : I.seta('#381E72')}</button>
+        </form>
+      </section>
+      <div class="numeros">
+        <div class="numero">${I.ok()}<b>${pub.length}</b><span>publicados<br>hoje</span></div>
+        <button class="numero" data-acao="recentes">${I.imagem('#6750A4')}<b>${rec.length}</b><span>produtos<br>recentes</span></button>
+      </div>
+      ${pendente ? `<button class="continuar" data-acao="abrir" data-sku="${esc(pendente.sku)}">
+        <span class="mini" ${bg(pendente.foto)}></span>
+        <span style="flex:1;min-width:0"><small>Continuar de onde parou</small><strong>${esc(pendente.nome || pendente.sku)}</strong></span>${I.seguir}</button>` : ''}
+      <div class="rotulo-secao">Recentes</div>
+      ${rec.length ? `<div class="grade-recentes">${rec.slice(0, 3).map(r => `
+        <button class="cartao-recente" data-acao="abrir" data-sku="${esc(r.sku)}"><span class="foto" ${bg(r.foto)}></span><span>${esc(r.sku)}</span></button>`).join('')}</div>`
+        : '<div class="vazio">Os produtos que você abrir aparecem aqui.</div>'}
+    </main>`;
+  }
+
+  function telaProduto() {
+    const p = E.dados.produto;
+    const capa = E.alvos.find(a => a.fotoAtual)?.fotoAtual;
+    const usadas = new Set(Object.values(E.vinculos));
+    const qtd = Object.keys(E.vinculos).length;
+    const temSel = E.selecionada !== null;
+    const preco = p.preco ? Number(p.preco).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '';
+    const fotos = E.fotos.map((f, i) => `
+      <div class="tile ${usadas.has(f.id) ? 'usada' : ''} ${E.selecionada === f.id ? 'selecionada' : ''} ${f.enviando ? 'enviando' : ''}" data-indice="${i}">
+        <button class="foto" data-acao="selecionar" data-id="${f.id}" aria-label="Selecionar foto ${i + 1}" style="background-image:url('${esc(f.img)}')">
+          ${usadas.has(f.id) && E.selecionada !== f.id ? `<span class="check">${I.ok()}</span>` : ''}
+        </button>
+        <span class="ordem">${i + 1}</span>
+        ${f.enviando ? '<span class="girando"><i></i></span>' : `<button class="lupa" data-acao="ampliar" data-img="${esc(f.img)}" data-titulo="Foto ${i + 1}" aria-label="Ampliar foto ${i + 1}">${I.lupa()}</button>`}
+      </div>`).join('');
+    const cores = E.alvos.map(a => {
+      const foto = E.fotos.find(f => f.id === E.vinculos[a.chave]);
+      const status = foto ? 'Foto nova escolhida' : temSel ? 'Toque para usar a foto selecionada' : E.fotos.length ? 'Selecione uma foto acima' : 'Adicione fotos primeiro';
+      return `<div class="cor ${temSel ? 'alvo' : ''}">
+        <button class="area" data-acao="vincular" data-chave="${esc(a.chave)}" aria-label="Usar a foto selecionada em ${esc(a.nome)}">
+          ${a.fotoAtual ? `<span class="quadro atual" ${bg(a.fotoAtual)}></span>${I.seta('#79747E').replace(/22/g, '16')}` : ''}
+          <span class="quadro ${foto ? 'nova' : 'vazia'}" ${foto ? bg(foto.img) : ''}>${foto ? '' : I.mais(22)}</span>
+          <span class="textos"><span class="nome">${esc(a.nome)}</span><span class="status ${foto ? 'ok' : ''}">${status}</span></span>
+        </button>
+        ${foto ? `<span class="acoes">
+          <button class="icone-btn" data-acao="ampliar" data-img="${esc(foto.img)}" data-titulo="${esc(a.nome)}" aria-label="Ampliar foto de ${esc(a.nome)}">${I.lupa('#49454F', 18)}</button>
+          <button class="icone-btn" data-acao="remover" data-chave="${esc(a.chave)}" aria-label="Remover foto de ${esc(a.nome)}">${I.fechar('#49454F')}</button></span>`
+          : (a.fotoAtual ? `<span class="acoes"><button class="icone-btn" data-acao="ampliar" data-img="${esc(a.fotoAtual)}" data-titulo="${esc(a.nome)} · foto atual" aria-label="Ampliar foto atual de ${esc(a.nome)}">${I.lupa('#49454F', 18)}</button></span>` : '')}
+      </div>`;
+    }).join('');
+    return `${topo(btnVoltar, 'Produto')}
+    <main class="conteudo">
+      <section class="cartao-produto">
+        <span class="mini" ${bg(capa)}></span>
+        <div class="info"><div class="nome">${esc(p.nome)}</div><div class="sku">${esc(p.codigo || E.sku)}</div></div>
+        ${preco ? `<span class="preco">${preco}</span>` : ''}
+      </section>
+
+      <div class="etapa"><span class="num">1</span><span class="titulo">Suas fotos</span><span class="extra">· ${E.fotos.length ? `${E.fotos.length} enviada(s)` : 'nenhuma ainda'}</span></div>
+      <div class="pool" id="pool">
+        <label class="adicionar" aria-label="Adicionar fotos">${I.mais()}Adicionar<input type="file" accept="image/*" multiple data-input="fotos" /></label>
+        ${fotos}
+      </div>
+      ${E.progresso !== null ? `<div class="progresso"><div class="linha"><span>Enviando fotos…</span><span>${E.progresso}%</span></div><div class="barra"><i style="width:${E.progresso}%"></i></div></div>` : ''}
+      <div class="dica">${E.fotos.length ? 'Segure e arraste para mudar a ordem · toque para selecionar · lupa para ampliar' : 'Toque em Adicionar para escolher da câmera ou galeria'}</div>
+
+      <div class="divisor"></div>
+
+      <div class="etapa"><span class="num">2</span><span class="titulo">Cores</span><span class="extra">· ${qtd} de ${E.alvos.length} com foto</span></div>
+      ${E.fotos.some(f => !f.enviando) && E.alvos.length > 1 ? `<button class="btn-tonal" data-acao="distribuir">${I.distribuir}Distribuir fotos na ordem</button>` : ''}
+      ${cores}
+    </main>
+    <div class="rodape">
+      <button class="btn-principal" data-acao="publicar" ${qtd && !E.publicando ? '' : 'disabled'}>${I.enviar}${qtd ? `Publicar ${qtd} foto(s) na Bagy` : 'Vincule ao menos uma foto'}</button>
+    </div>`;
+  }
+
+  function telaResultado() {
+    const ok = E.resultado.filter(r => r.ok).length;
+    const falhas = E.resultado.length - ok;
+    return `${topo('<span class="espaco"></span>', 'Resultado')}
+    <main class="conteudo">
+      <div class="resultado-topo">
+        <span class="grande" style="background:${falhas ? 'var(--erro-fundo)' : 'var(--ok-fundo)'}">${falhas ? I.erro(40) : I.ok(40)}</span>
+        <h2>${ok} de ${E.resultado.length} foto(s) publicada(s)</h2>
+        <div style="font-size:14px;color:var(--texto2)">${esc(E.dados?.produto?.nome || '')} · ${esc(E.sku)}</div>
+      </div>
+      <div class="lista">${E.resultado.map(r => `
+        <div class="item"><span class="mini" ${bg(r.img)}></span>
+          <span class="txt"><span>${esc(r.nome)}</span>${r.ok ? '' : `<small>${esc(r.erro)} A foto continua vinculada.</small>`}</span>
+          ${r.ok ? I.ok(20) : I.erro(20)}</div>`).join('')}</div>
+      ${falhas && E.dados ? `<button class="btn-contorno" data-acao="voltar-produto">${I.tentar}Tentar de novo as que falharam</button>` : ''}
+    </main>
+    <div class="rodape"><button class="btn-principal" data-acao="inicio">${I.camera('#fff', '#6750A4')}Publicar outro produto</button></div>`;
+  }
+
+  function telaRecentes() {
+    const abas = ['Recentes', 'Publicados hoje'];
+    const lista = E.aba === 0
+      ? recentesLocais().map(r => ({ ...r, info: `${r.sku} · ${r.publicado ? 'publicado' : 'sem publicar'}` }))
+      : publicadosHoje().map(p => ({ ...p, info: `${p.sku} · ${p.qtd} foto(s) · ${p.hora}` }));
+    return `${topo(btnMenu, 'Produtos recentes')}
+    <main class="conteudo">
+      <div class="abas" role="tablist">${abas.map((a, i) => `<button role="tab" aria-selected="${E.aba === i}" class="${E.aba === i ? 'ativa' : ''}" data-acao="aba" data-aba="${i}">${a}</button>`).join('')}</div>
+      ${lista.length ? lista.map(r => `
+        <button class="linha-recente" data-acao="abrir" data-sku="${esc(r.sku)}">
+          <span class="mini" ${bg(r.foto)}></span>
+          <span class="txt"><span>${esc(r.nome || r.sku)}</span><small>${esc(r.info)}</small></span>
+          <span class="bolha" style="background:var(--primaria)">${I.camera('#fff', '#6750A4')}</span>
+        </button>`).join('') : '<div class="vazio" style="padding:32px">Nada por aqui ainda.</div>'}
+      <div class="vazio">Lista salva neste aparelho.</div>
+    </main>`;
+  }
+
+  function gaveta() {
+    return `<button class="veu ${E.menu ? '' : 'oculto'}" data-acao="fechar-menu" aria-label="Fechar menu"></button>
+    <nav class="gaveta ${E.menu ? 'aberta' : ''}" aria-label="Menu" ${E.menu ? '' : 'aria-hidden="true"'}>
+      <div class="marca"><span class="bolha" style="background:var(--primaria);border-radius:12px">${I.imagem('#fff')}</span>GSLFotos</div>
+      <button class="${E.tela === 'inicio' ? 'ativo' : ''}" data-acao="inicio">${I.camera('#4A4458', '#E8DEF8', 24)}Publicar fotos</button>
+      <button class="${E.tela === 'recentes' ? 'ativo' : ''}" data-acao="recentes">${I.grade}Produtos recentes</button>
+      <div class="sep"></div>
+      <div class="sub">Atalhos</div>
+      <a href="${PASTA_DRIVE}" target="_blank" rel="noopener">${I.pasta}Abrir pasta no Drive</a>
+      <a href="../">${I.antiga}Usar a versão antiga</a>
+      <div class="rodape-gaveta">Versão nova (v2)</div>
+    </nav>`;
+  }
+
+  function render() {
+    const app = document.getElementById('app');
+    const telas = {
+      inicio: telaInicio,
+      produto: () => E.dados ? telaProduto() : telaInicio(),
+      publicando: () => `${topo('<span class="espaco"></span>', 'Publicando')}<div class="carregando"><i></i>Publicando na Bagy…</div>`,
+      resultado: telaResultado,
+      recentes: telaRecentes,
+    };
+    const skuDigitado = document.getElementById('sku')?.value;
+    app.innerHTML = (telas[E.tela] || telaInicio)() + gaveta() + (E.ampliada ? `
+      <div class="ampliada" data-acao="fechar-ampliada">
+        <header class="topo"><h1>${esc(E.ampliada.titulo)}</h1><button class="icone-btn" data-acao="fechar-ampliada" aria-label="Fechar" style="background:#2B2930;color:#fff">${I.fechar('#fff')}</button></header>
+        <img src="${esc(E.ampliada.url)}" alt="${esc(E.ampliada.titulo)}" />
+      </div>` : '');
+    const campo = document.getElementById('sku');
+    if (campo && skuDigitado) campo.value = skuDigitado;
+  }
+
+  // ── Eventos (um só ouvinte para a tela toda) ────────────────
+  document.addEventListener('click', ev => {
+    if (arrasto.acabouDeArrastar) return; // o "clique" que o navegador gera ao soltar o arrasto
+    const el = ev.target.closest('[data-acao]');
+    if (!el) return;
+    const a = el.dataset.acao;
+    if (a === 'menu') return mudar({ menu: true });
+    if (a === 'fechar-menu') return mudar({ menu: false });
+    if (a === 'inicio') return mudar({ tela: 'inicio', menu: false });
+    if (a === 'recentes') return mudar({ tela: 'recentes', menu: false });
+    if (a === 'aba') return mudar({ aba: Number(el.dataset.aba) });
+    if (a === 'abrir') return abrirProduto(el.dataset.sku);
+    if (a === 'voltar-produto') return mudar({ tela: 'produto' });
+    if (a === 'ampliar') { ev.stopPropagation(); return mudar({ ampliada: { url: el.dataset.img, titulo: el.dataset.titulo } }); }
+    if (a === 'fechar-ampliada') return mudar({ ampliada: null });
+    if (a === 'selecionar') {
+      const f = E.fotos.find(x => x.id === el.dataset.id);
+      if (!f || f.enviando) return;
+      return mudar({ selecionada: E.selecionada === f.id ? null : f.id });
+    }
+    if (a === 'vincular') {
+      if (E.selecionada === null) return avisar(E.fotos.length ? 'Toque numa foto acima primeiro.' : 'Adicione as fotos primeiro.');
+      return mudar({ vinculos: { ...E.vinculos, [el.dataset.chave]: E.selecionada }, selecionada: null });
+    }
+    if (a === 'remover') { const v = { ...E.vinculos }; delete v[el.dataset.chave]; return mudar({ vinculos: v }); }
+    if (a === 'distribuir') return distribuir();
+    if (a === 'publicar') return publicar();
+  });
+  document.addEventListener('submit', ev => {
+    if (ev.target.dataset.form !== 'busca') return;
+    ev.preventDefault();
+    abrirProduto(new FormData(ev.target).get('sku'));
+  });
+  document.addEventListener('change', ev => {
+    if (ev.target.dataset.input !== 'fotos') return;
+    adicionarFotos(Array.from(ev.target.files || []));
+  });
+  document.addEventListener('keydown', ev => {
+    if (ev.key !== 'Escape') return;
+    if (E.ampliada) mudar({ ampliada: null }); else if (E.menu) mudar({ menu: false });
+  });
+
+  // ── Arrastar para reordenar (dedo ou mouse) ─────────────────
+  // Segurar ~0,25s numa foto e arrastar. Um toque rápido continua
+  // selecionando, e deslizar sem segurar continua rolando a tela.
+  const arrasto = { timer: null, ativo: false, de: -1, alvo: -1, x: 0, y: 0, acabouDeArrastar: false };
+  function impedirRolagem(ev) { if (arrasto.ativo) ev.preventDefault(); }
+  document.addEventListener('touchmove', impedirRolagem, { passive: false });
+  document.addEventListener('pointerdown', ev => {
+    const tile = ev.target.closest('.tile');
+    if (!tile || ev.target.closest('.lupa') || E.fotos[Number(tile.dataset.indice)]?.enviando) return;
+    arrasto.de = Number(tile.dataset.indice); arrasto.x = ev.clientX; arrasto.y = ev.clientY;
+    clearTimeout(arrasto.timer);
+    arrasto.timer = setTimeout(() => {
+      arrasto.ativo = true; arrasto.alvo = arrasto.de;
+      tile.classList.add('arrastando');
+      navigator.vibrate?.(15);
+    }, 250);
+  });
+  document.addEventListener('pointermove', ev => {
+    if (!arrasto.ativo) {
+      if (arrasto.timer && Math.hypot(ev.clientX - arrasto.x, ev.clientY - arrasto.y) > 10) { clearTimeout(arrasto.timer); arrasto.timer = null; }
+      return;
+    }
+    const sob = document.elementFromPoint(ev.clientX, ev.clientY)?.closest('.tile');
+    document.querySelectorAll('.tile.alvo-drop').forEach(t => t.classList.remove('alvo-drop'));
+    if (sob) { arrasto.alvo = Number(sob.dataset.indice); if (arrasto.alvo !== arrasto.de) sob.classList.add('alvo-drop'); }
+  });
+  function terminarArrasto() {
+    clearTimeout(arrasto.timer); arrasto.timer = null;
+    if (!arrasto.ativo) return;
+    arrasto.ativo = false; arrasto.acabouDeArrastar = true;
+    setTimeout(() => { arrasto.acabouDeArrastar = false; }, 0);
+    if (arrasto.alvo !== arrasto.de) moverFoto(arrasto.de, arrasto.alvo); else render();
+  }
+  document.addEventListener('pointerup', terminarArrasto);
+  document.addEventListener('pointercancel', terminarArrasto);
+  document.addEventListener('contextmenu', ev => { if (ev.target.closest('.tile')) ev.preventDefault(); });
+
+  // Acorda o servidor enquanto a pessoa digita o SKU.
+  fetch(`${BACKEND_URL}/health`).catch(() => {});
+  render();
+</script>
+</body>
+</html>
