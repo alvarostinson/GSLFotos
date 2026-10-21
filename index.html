@@ -391,13 +391,17 @@
     if (envio.some(i => !i.foto_url)) return avisar('Espere as fotos terminarem de enviar.', 'erro');
     mudar({ publicando: true, tela: 'publicando' });
     let resultados = [];
+    let avisoOrdem = null;
     try {
       const res = await fetch(`${BACKEND_URL}/publicar`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ bagy: envio.map(({ _chave, _img, ...resto }) => resto) }),
+        // modo_antigas "mover": nada é apagado — as fotos antigas da cor
+        // perdem a cor e vão para o fim; as novas ficam na frente.
+        body: JSON.stringify({ modo_antigas: 'mover', bagy: envio.map(({ _chave, _img, ...resto }) => resto) }),
       });
       const data = await res.json();
       resultados = data.resultados?.bagy || [];
+      avisoOrdem = data.resultados?.organizacao?.ok === false ? data.resultados.organizacao.aviso : null;
     } catch (e) {
       avisar('Sem resposta do servidor. Confira o resultado abaixo.', 'erro');
     }
@@ -411,7 +415,7 @@
       registrarPublicado({ sku: E.sku, nome: E.dados.produto.nome, qtd: okCount, hora: new Date().toTimeString().slice(0, 5), foto: resultado.find(r => r.ok).img });
       salvarRecente({ sku: E.sku, nome: E.dados.produto.nome, publicado: okCount === resultado.length });
     }
-    mudar({ resultado, tela: 'resultado', publicando: false });
+    mudar({ resultado, avisoOrdem, tela: 'resultado', publicando: false });
     // Recarrega os dados atuais da Bagy (IDs das fotos novas) — sem
     // isso, publicar de novo duplicaria fotos. Cores com erro ficam
     // vinculadas para tentar outra vez.
@@ -545,6 +549,8 @@
         <h2>${ok} de ${E.resultado.length} foto(s) publicada(s)</h2>
         <div style="font-size:14px;color:var(--texto2)">${esc(E.dados?.produto?.nome || '')} · ${esc(E.sku)}</div>
       </div>
+      ${E.avisoOrdem ? `<div style="background:var(--erro-fundo);color:#410002;border-radius:16px;padding:12px 14px;font-size:13px;line-height:18px;display:flex;gap:10px">${I.erro(20)}<span>${esc(E.avisoOrdem)}</span></div>` : ''}
+      ${E.resultado.some(r => r.ok) && !E.avisoOrdem ? '<div style="text-align:center;font-size:12px;color:var(--texto2)">Fotos novas na frente · as antigas foram para o fim, sem cor</div>' : ''}
       <div class="lista">${E.resultado.map(r => `
         <div class="item"><span class="mini" ${bg(r.img)}></span>
           <span class="txt"><span>${esc(r.nome)}</span>${r.ok ? '' : `<small>${esc(r.erro)} A foto continua vinculada.</small>`}</span>
