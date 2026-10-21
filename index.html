@@ -82,11 +82,9 @@
   .tile { width: 60px; height: 60px; position: relative; flex-shrink: 0; touch-action: manipulation; user-select: none; -webkit-user-select: none; }
   .tile .foto { width: 60px; height: 60px; border-radius: 12px; border: none; padding: 0; background: var(--superficie3) center/cover; display: flex; align-items: center; justify-content: center; }
   .tile.usada .foto { opacity: .45; }
-  .tile.selecionada .foto { opacity: 1; outline: 3px solid var(--primaria); outline-offset: 2px; }
   .tile.arrastando { opacity: .3; }
   .tile.alvo-drop .foto { outline: 3px dashed var(--primaria); outline-offset: 2px; }
   .tile .ordem { position: absolute; top: 2px; left: 2px; min-width: 18px; height: 18px; border-radius: 9px; background: var(--primaria); color: #fff; font-size: 11px; font-weight: 500; display: flex; align-items: center; justify-content: center; pointer-events: none; }
-  .tile .lupa { position: absolute; bottom: 2px; right: 2px; width: 22px; height: 22px; border: none; border-radius: 11px; background: #1D1B20B3; display: flex; align-items: center; justify-content: center; padding: 0; }
   .tile .check { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; }
   .tile.enviando .foto { opacity: .5; }
   .tile .girando { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; }
@@ -104,7 +102,7 @@
   .cor { display: flex; align-items: center; gap: 8px; padding: 10px; border-radius: 20px; background: var(--superficie); border: 1px solid var(--borda); }
   .cor.alvo { background: #EADDFF; border: 2px solid var(--primaria); }
   .cor .area { flex: 1; min-width: 0; border: none; background: none; padding: 0; display: flex; align-items: center; gap: 8px; text-align: left; }
-  .quadro { width: 52px; height: 52px; border-radius: 10px; flex-shrink: 0; background: var(--superficie3) center/cover; display: flex; align-items: center; justify-content: center; }
+  .quadro { width: 52px; height: 52px; border-radius: 10px; flex-shrink: 0; border: none; padding: 0; background: var(--superficie3) center/cover; display: flex; align-items: center; justify-content: center; }
   .quadro.atual { opacity: .5; }
   .quadro.nova { outline: 2px solid var(--ok); }
   .quadro.vazia { background: #F7F2FA; border: 2px dashed var(--primaria); }
@@ -112,8 +110,19 @@
   .cor .nome { font-size: 15px; font-weight: 500; }
   .cor .status { font-size: 12px; color: var(--texto2); }
   .cor .status.ok { color: var(--ok); }
-  .cor .acoes { display: flex; flex-direction: column; }
-  .cor .acoes button { width: 36px; height: 36px; }
+  .cor .icone-btn { width: 40px; height: 40px; flex-shrink: 0; }
+  .usar-em { padding: 12px 16px calc(16px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: 10px; }
+  .usar-em .titulo { color: #CAC4D0; font-size: 13px; text-align: center; }
+  .usar-em .opcoes { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+  .usar-em button { min-height: 44px; padding: 0 16px; border: 1px solid #938F99; border-radius: 22px; background: none; color: #fff; font-size: 14px; font-weight: 500; display: flex; align-items: center; gap: 6px; }
+  .usar-em button.atual { background: var(--lilas); color: var(--sobre-lilas); border-color: var(--lilas); }
+  .escolher { position: fixed; inset: 0; z-index: 55; display: flex; flex-direction: column; justify-content: flex-end; }
+  .escolher .painel { background: var(--superficie2); border-radius: 28px 28px 0 0; padding: 12px 16px calc(20px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: 12px; max-height: 70dvh; overflow-y: auto; }
+  .escolher .alca { width: 32px; height: 4px; border-radius: 2px; background: var(--contorno); align-self: center; }
+  .escolher h2 { font-size: 16px; font-weight: 500; text-align: center; }
+  .escolher .grade { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+  .escolher .grade button { aspect-ratio: 1; border: none; border-radius: 12px; background: var(--superficie3) center/cover; position: relative; }
+  .escolher .grade button span { position: absolute; top: 3px; left: 3px; min-width: 18px; height: 18px; border-radius: 9px; background: var(--primaria); color: #fff; font-size: 11px; display: flex; align-items: center; justify-content: center; }
   .rodape { position: sticky; bottom: 0; padding: 12px 16px calc(12px + env(safe-area-inset-bottom)); background: var(--superficie2); border-radius: 24px 24px 0 0; }
   .btn-principal { width: 100%; height: 56px; border: none; border-radius: 28px; background: var(--primaria); color: #fff; font-size: 16px; font-weight: 500; display: flex; align-items: center; justify-content: center; gap: 8px; }
   .btn-principal:disabled { background: var(--borda); }
@@ -238,7 +247,7 @@
     dados: null,           // resposta da Bagy (produto + variações)
     alvos: [],             // variações agrupadas por cor: { chave, idReal, nome, codigo, fotoAtual, fotoAtualId, todosIds }
     fotos: [],             // fotos enviadas: { id, url (link público), img (miniatura local), enviando }
-    selecionada: null,     // id da foto selecionada
+    escolhendo: null,      // chave da cor cujo painel "escolher foto" está aberto
     vinculos: {},          // chave da cor -> id da foto
     progresso: null,       // 0-100 enquanto envia
     publicando: false,     // trava contra publicação duplicada
@@ -288,7 +297,7 @@
     try {
       const bagy = await buscarNaBagy(sku);
       contadorFoto = 0;
-      mudar({ tela: 'produto', sku, dados: bagy, alvos: montarAlvos(bagy), fotos: [], vinculos: {}, selecionada: null, resultado: null, buscando: false });
+      mudar({ tela: 'produto', sku, dados: bagy, alvos: montarAlvos(bagy), fotos: [], vinculos: {}, resultado: null, buscando: false });
       salvarRecente({ sku, nome: bagy.produto.nome, foto: bagy.variacoes?.find(v => v.fotoAtual)?.fotoAtual || null, publicado: false });
       window.scrollTo(0, 0);
     } catch (e) {
@@ -414,7 +423,7 @@
       const bagy = await buscarNaBagy(E.sku);
       const vinculos = {};
       falhas.forEach(f => { const foto = E.fotos.find(x => x.url === f.url); if (foto) vinculos[f.chave] = foto.id; });
-      Object.assign(E, { dados: bagy, alvos: montarAlvos(bagy), vinculos, selecionada: null });
+      Object.assign(E, { dados: bagy, alvos: montarAlvos(bagy), vinculos });
       render();
     } catch {
       Object.assign(E, { vinculos: {}, dados: null });
@@ -427,7 +436,7 @@
     const prontas = E.fotos.filter(f => !f.enviando && f.url);
     const vinculos = {};
     E.alvos.forEach((a, i) => { if (prontas[i]) vinculos[a.chave] = prontas[i].id; });
-    mudar({ vinculos, selecionada: null });
+    mudar({ vinculos });
   }
 
   function moverFoto(de, para) {
@@ -478,29 +487,25 @@
     const capa = E.alvos.find(a => a.fotoAtual)?.fotoAtual;
     const usadas = new Set(Object.values(E.vinculos));
     const qtd = Object.keys(E.vinculos).length;
-    const temSel = E.selecionada !== null;
     const preco = p.preco ? Number(p.preco).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '';
     const fotos = E.fotos.map((f, i) => `
-      <div class="tile ${usadas.has(f.id) ? 'usada' : ''} ${E.selecionada === f.id ? 'selecionada' : ''} ${f.enviando ? 'enviando' : ''}" data-indice="${i}">
-        <button class="foto" data-acao="selecionar" data-id="${f.id}" aria-label="Selecionar foto ${i + 1}" style="background-image:url('${esc(f.img)}')">
-          ${usadas.has(f.id) && E.selecionada !== f.id ? `<span class="check">${I.ok()}</span>` : ''}
+      <div class="tile ${usadas.has(f.id) ? 'usada' : ''} ${f.enviando ? 'enviando' : ''}" data-indice="${i}">
+        <button class="foto" data-acao="ver-foto" data-id="${f.id}" aria-label="Ver foto ${i + 1}" style="background-image:url('${esc(f.img)}')">
+          ${usadas.has(f.id) ? `<span class="check">${I.ok()}</span>` : ''}
         </button>
         <span class="ordem">${i + 1}</span>
-        ${f.enviando ? '<span class="girando"><i></i></span>' : `<button class="lupa" data-acao="ampliar" data-img="${esc(f.img)}" data-titulo="Foto ${i + 1}" aria-label="Ampliar foto ${i + 1}">${I.lupa()}</button>`}
+        ${f.enviando ? '<span class="girando"><i></i></span>' : ''}
       </div>`).join('');
     const cores = E.alvos.map(a => {
       const foto = E.fotos.find(f => f.id === E.vinculos[a.chave]);
-      const status = foto ? 'Foto nova escolhida' : temSel ? 'Toque para usar a foto selecionada' : E.fotos.length ? 'Selecione uma foto acima' : 'Adicione fotos primeiro';
-      return `<div class="cor ${temSel ? 'alvo' : ''}">
-        <button class="area" data-acao="vincular" data-chave="${esc(a.chave)}" aria-label="Usar a foto selecionada em ${esc(a.nome)}">
-          ${a.fotoAtual ? `<span class="quadro atual" ${bg(a.fotoAtual)}></span>${I.seta('#79747E').replace(/22/g, '16')}` : ''}
-          <span class="quadro ${foto ? 'nova' : 'vazia'}" ${foto ? bg(foto.img) : ''}>${foto ? '' : I.mais(22)}</span>
-          <span class="textos"><span class="nome">${esc(a.nome)}</span><span class="status ${foto ? 'ok' : ''}">${status}</span></span>
-        </button>
-        ${foto ? `<span class="acoes">
-          <button class="icone-btn" data-acao="ampliar" data-img="${esc(foto.img)}" data-titulo="${esc(a.nome)}" aria-label="Ampliar foto de ${esc(a.nome)}">${I.lupa('#49454F', 18)}</button>
-          <button class="icone-btn" data-acao="remover" data-chave="${esc(a.chave)}" aria-label="Remover foto de ${esc(a.nome)}">${I.fechar('#49454F')}</button></span>`
-          : (a.fotoAtual ? `<span class="acoes"><button class="icone-btn" data-acao="ampliar" data-img="${esc(a.fotoAtual)}" data-titulo="${esc(a.nome)} · foto atual" aria-label="Ampliar foto atual de ${esc(a.nome)}">${I.lupa('#49454F', 18)}</button></span>` : '')}
+      const status = foto ? 'Foto nova escolhida' : E.fotos.some(f => !f.enviando) ? 'Toque no + ou numa foto acima' : 'Adicione fotos primeiro';
+      return `<div class="cor">
+        ${a.fotoAtual ? `<button class="quadro atual" data-acao="ver-imagem" data-img="${esc(a.fotoAtual)}" data-titulo="${esc(a.nome)} · foto atual na loja" aria-label="Ver foto atual de ${esc(a.nome)}" ${bg(a.fotoAtual)}></button>${I.seta('#79747E').replace(/22/g, '16')}` : ''}
+        ${foto
+          ? `<button class="quadro nova" data-acao="ver-foto" data-id="${foto.id}" aria-label="Ver foto nova de ${esc(a.nome)}" ${bg(foto.img)}></button>`
+          : `<button class="quadro vazia" data-acao="escolher" data-chave="${esc(a.chave)}" aria-label="Escolher foto para ${esc(a.nome)}">${I.mais(22)}</button>`}
+        <span class="textos"><span class="nome">${esc(a.nome)}</span><span class="status ${foto ? 'ok' : ''}">${status}</span></span>
+        ${foto ? `<button class="icone-btn" data-acao="remover" data-chave="${esc(a.chave)}" aria-label="Remover foto de ${esc(a.nome)}">${I.fechar('#49454F')}</button>` : ''}
       </div>`;
     }).join('');
     return `${topo(btnVoltar, 'Produto')}
@@ -517,7 +522,7 @@
         ${fotos}
       </div>
       ${E.progresso !== null ? `<div class="progresso"><div class="linha"><span>Enviando fotos…</span><span>${E.progresso}%</span></div><div class="barra"><i style="width:${E.progresso}%"></i></div></div>` : ''}
-      <div class="dica">${E.fotos.length ? 'Segure e arraste para mudar a ordem · toque para selecionar · lupa para ampliar' : 'Toque em Adicionar para escolher da câmera ou galeria'}</div>
+      <div class="dica">${E.fotos.length ? 'Toque na foto para ver grande e escolher a cor · segure e arraste para mudar a ordem' : 'Toque em Adicionar para escolher da câmera ou galeria'}</div>
 
       <div class="divisor"></div>
 
@@ -581,6 +586,35 @@
     </nav>`;
   }
 
+  // Foto grande. Se for uma das fotos enviadas, mostra embaixo as
+  // cores para vincular direto dali ("Usar em: Dourado · Prata…").
+  function telaAmpliada() {
+    if (!E.ampliada) return '';
+    const fotoId = E.ampliada.fotoId;
+    const opcoes = fotoId && E.tela === 'produto' ? E.alvos.map(a => `
+      <button class="${E.vinculos[a.chave] === fotoId ? 'atual' : ''}" data-acao="usar-em" data-chave="${esc(a.chave)}">${E.vinculos[a.chave] === fotoId ? I.ok(16) : ''}${esc(a.nome)}</button>`).join('') : '';
+    return `<div class="ampliada" data-acao="fechar-ampliada">
+        <header class="topo"><h1>${esc(E.ampliada.titulo)}</h1><button class="icone-btn" data-acao="fechar-ampliada" aria-label="Fechar" style="background:#2B2930;color:#fff">${I.fechar('#fff')}</button></header>
+        <img src="${esc(E.ampliada.url)}" alt="${esc(E.ampliada.titulo)}" />
+        ${opcoes ? `<div class="usar-em"><div class="titulo">Usar esta foto em:</div><div class="opcoes">${opcoes}</div></div>` : ''}
+      </div>`;
+  }
+
+  // Painel para escolher a foto de uma cor (ao tocar no + da cor).
+  function telaEscolher() {
+    if (!E.escolhendo) return '';
+    const alvo = E.alvos.find(a => a.chave === E.escolhendo);
+    const prontas = E.fotos.filter(f => !f.enviando && f.url);
+    return `<div class="escolher">
+      <button class="veu" data-acao="fechar-escolher" aria-label="Fechar"></button>
+      <div class="painel" style="position:relative;z-index:56">
+        <span class="alca"></span>
+        <h2>Foto para ${esc(alvo?.nome || '')}</h2>
+        ${prontas.length ? `<div class="grade">${prontas.map(f => `<button data-acao="escolher-foto" data-id="${f.id}" aria-label="Usar foto ${E.fotos.indexOf(f) + 1}" style="background-image:url('${esc(f.img)}')"><span>${E.fotos.indexOf(f) + 1}</span></button>`).join('')}</div>`
+          : '<div class="vazio">Adicione as fotos primeiro (botão Adicionar).</div>'}
+      </div></div>`;
+  }
+
   function render() {
     const app = document.getElementById('app');
     const telas = {
@@ -591,11 +625,7 @@
       recentes: telaRecentes,
     };
     const skuDigitado = document.getElementById('sku')?.value;
-    app.innerHTML = (telas[E.tela] || telaInicio)() + gaveta() + (E.ampliada ? `
-      <div class="ampliada" data-acao="fechar-ampliada">
-        <header class="topo"><h1>${esc(E.ampliada.titulo)}</h1><button class="icone-btn" data-acao="fechar-ampliada" aria-label="Fechar" style="background:#2B2930;color:#fff">${I.fechar('#fff')}</button></header>
-        <img src="${esc(E.ampliada.url)}" alt="${esc(E.ampliada.titulo)}" />
-      </div>` : '');
+    app.innerHTML = (telas[E.tela] || telaInicio)() + gaveta() + telaAmpliada() + telaEscolher();
     const campo = document.getElementById('sku');
     if (campo && skuDigitado) campo.value = skuDigitado;
   }
@@ -613,17 +643,21 @@
     if (a === 'aba') return mudar({ aba: Number(el.dataset.aba) });
     if (a === 'abrir') return abrirProduto(el.dataset.sku);
     if (a === 'voltar-produto') return mudar({ tela: 'produto' });
-    if (a === 'ampliar') { ev.stopPropagation(); return mudar({ ampliada: { url: el.dataset.img, titulo: el.dataset.titulo } }); }
-    if (a === 'fechar-ampliada') return mudar({ ampliada: null });
-    if (a === 'selecionar') {
+    if (a === 'ver-imagem') return mudar({ ampliada: { url: el.dataset.img, titulo: el.dataset.titulo } });
+    if (a === 'ver-foto') {
       const f = E.fotos.find(x => x.id === el.dataset.id);
-      if (!f || f.enviando) return;
-      return mudar({ selecionada: E.selecionada === f.id ? null : f.id });
+      if (!f) return;
+      return mudar({ ampliada: { url: f.img, titulo: `Foto ${E.fotos.indexOf(f) + 1}`, fotoId: f.enviando ? null : f.id } });
     }
-    if (a === 'vincular') {
-      if (E.selecionada === null) return avisar(E.fotos.length ? 'Toque numa foto acima primeiro.' : 'Adicione as fotos primeiro.');
-      return mudar({ vinculos: { ...E.vinculos, [el.dataset.chave]: E.selecionada }, selecionada: null });
+    if (a === 'usar-em') {
+      const alvo = E.alvos.find(x => x.chave === el.dataset.chave);
+      mudar({ vinculos: { ...E.vinculos, [el.dataset.chave]: E.ampliada.fotoId }, ampliada: null });
+      return avisar(`Foto vinculada a ${alvo?.nome || 'cor'}.`);
     }
+    if (a === 'escolher') return mudar({ escolhendo: el.dataset.chave });
+    if (a === 'fechar-escolher') return mudar({ escolhendo: null });
+    if (a === 'escolher-foto') return mudar({ vinculos: { ...E.vinculos, [E.escolhendo]: el.dataset.id }, escolhendo: null });
+    if (a === 'fechar-ampliada') return mudar({ ampliada: null });
     if (a === 'remover') { const v = { ...E.vinculos }; delete v[el.dataset.chave]; return mudar({ vinculos: v }); }
     if (a === 'distribuir') return distribuir();
     if (a === 'publicar') return publicar();
@@ -639,7 +673,7 @@
   });
   document.addEventListener('keydown', ev => {
     if (ev.key !== 'Escape') return;
-    if (E.ampliada) mudar({ ampliada: null }); else if (E.menu) mudar({ menu: false });
+    if (E.ampliada) mudar({ ampliada: null }); else if (E.escolhendo) mudar({ escolhendo: null }); else if (E.menu) mudar({ menu: false });
   });
 
   // ── Arrastar para reordenar (dedo ou mouse) ─────────────────
@@ -650,7 +684,7 @@
   document.addEventListener('touchmove', impedirRolagem, { passive: false });
   document.addEventListener('pointerdown', ev => {
     const tile = ev.target.closest('.tile');
-    if (!tile || ev.target.closest('.lupa') || E.fotos[Number(tile.dataset.indice)]?.enviando) return;
+    if (!tile || E.fotos[Number(tile.dataset.indice)]?.enviando) return;
     arrasto.de = Number(tile.dataset.indice); arrasto.x = ev.clientX; arrasto.y = ev.clientY;
     clearTimeout(arrasto.timer);
     arrasto.timer = setTimeout(() => {
