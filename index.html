@@ -544,9 +544,13 @@
       return adicionarFotoNoPool(null, localUrl, true); // true = pendente
     });
 
+    // Reduz cada foto no próprio aparelho antes de enviar (ver
+    // prepararFotoParaEnvio) — o envio fica bem mais rápido.
+    const fotosPreparadas = await Promise.all(files.map(prepararFotoParaEnvio));
+
     const form = new FormData();
     form.append('sku', skuAtual);
-    files.forEach(f => form.append('fotos', f));
+    fotosPreparadas.forEach(f => form.append('fotos', f));
 
     try {
       const res = await fetch(`${BACKEND_URL}/upload-temporario`, { method: 'POST', body: form });
@@ -565,6 +569,41 @@
       showToast(err.message, 'error');
     }
   });
+
+  // O servidor nunca usa mais que 2000px (limite final da Bagy é
+  // 350KB). Então reduzir para 2000px AQUI, com qualidade 95%, não
+  // muda a foto final — só evita subir 5 a 10 MB por foto pela
+  // internet. Se algo der errado, envia a foto original.
+  const LADO_MAXIMO_ENVIO = 2000;
+  const QUALIDADE_ENVIO = 0.95;
+  const TAMANHO_DISPENSA_REDUCAO = 1.5 * 1024 * 1024; // fotos menores que 1,5MB vão como estão
+
+  async function prepararFotoParaEnvio(file) {
+    try {
+      if (file.size <= TAMANHO_DISPENSA_REDUCAO) return file;
+      // imageOrientation: respeita a posição em que a foto foi tirada
+      const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
+      const escala = Math.min(1, LADO_MAXIMO_ENVIO / Math.max(bitmap.width, bitmap.height));
+      const largura = Math.round(bitmap.width * escala);
+      const altura = Math.round(bitmap.height * escala);
+
+      const canvas = document.createElement('canvas');
+      canvas.width = largura;
+      canvas.height = altura;
+      const ctx = canvas.getContext('2d');
+      ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(bitmap, 0, 0, largura, altura);
+      bitmap.close?.();
+
+      const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', QUALIDADE_ENVIO));
+      if (!blob || blob.size >= file.size) return file;
+      const nome = file.name.replace(/\.[^.]+$/, '') + '.jpg';
+      return new File([blob], nome, { type: 'image/jpeg' });
+    } catch (err) {
+      console.warn('Não foi possível reduzir a foto, enviando original:', err);
+      return file;
+    }
+  }
 
   function adicionarFotoNoPool(urlPublica, urlLocal, pendente = false) {
     const fotoId = `f${++contadorFoto}`;
