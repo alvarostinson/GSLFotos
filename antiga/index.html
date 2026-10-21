@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>GSLFotos — Publicar</title>
+<link rel="manifest" href="manifest.json" />
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap');
+  :root {
+    --bg:#0f0f1a; --surface:#1a1a2e; --surface2:#22223a; --border:#2e2e4a;
+    --accent:#c084fc; --accent-solid:#7c3aed; --text:#e8e8f0; --text-muted:#7070a0;
+    --success:#34d399; --error:#f87171; --warning:#fbbf24; --radius:14px; --radius-sm:8px;
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--text); min-height:100dvh; }
+  header { padding:20px; display:flex; align-items:center; gap:12px; }
+  .logo { width:36px; height:36px; background:linear-gradient(135deg,var(--accent-solid),#a855f7); border-radius:10px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .logo svg { width:20px; height:20px; }
+  header h1 { font-size:17px; font-weight:600; }
+  header span { font-size:12px; color:var(--text-muted); font-family:'DM Mono',monospace; }
+  .btn-drive { margin-left:auto; background:var(--surface); border:1px solid var(--border); color:var(--text); font-size:12px; font-weight:600; padding:8px 14px; border-radius:99px; text-decoration:none; display:flex; align-items:center; gap:6px; transition:border-color .15s, color .15s; }
+  .btn-drive:hover { border-color:var(--accent); color:var(--accent); }
+  main { padding:0 20px 24px; display:flex; flex-direction:column; gap:16px; max-width:480px; margin:0 auto; }
+  .card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:18px; }
+  .field-label { font-size:11px; font-weight:600; letter-spacing:0.8px; text-transform:uppercase; color:var(--text-muted); margin-bottom:8px; }
+  input[type="text"] { width:100%; background:var(--surface2); border:1.5px solid var(--border); border-radius:var(--radius-sm); color:var(--text); font-family:'DM Mono',monospace; font-size:18px; font-weight:500; letter-spacing:1px; padding:13px 14px; outline:none; text-transform:uppercase; }
+  input[type="text"]:focus { border-color:var(--accent); }
+  .btn { width:100%; background:linear-gradient(135deg,var(--accent-solid),#a855f7); border:none; border-radius:var(--radius); color:white; font-size:15px; font-weight:600; padding:14px; cursor:pointer; }
+  .btn:disabled { opacity:0.4; cursor:not-allowed; }
+  .chip-historico { background:var(--surface2); border:1px solid var(--border); color:var(--text-muted); font-family:'DM Mono',monospace; font-size:11px; padding:4px 10px; border-radius:99px; cursor:pointer; }
+  .chip-historico:hover { border-color:var(--accent); color:var(--accent); }
+  .produto-codigo { font-family:'DM Mono',monospace; font-size:13px; color:var(--accent); font-weight:600; letter-spacing:0.5px; margin-bottom:4px; }
+  .produto-nome { font-size:16px; font-weight:600; margin-bottom:2px; }
+  .produto-sub { font-size:12px; color:var(--text-muted); }
+  .foto-pool { display:grid; grid-template-columns:repeat(auto-fill, minmax(72px, 1fr)); gap:10px; margin-top:14px; }
+  .foto-thumb { aspect-ratio:1; border-radius:10px; overflow:hidden; cursor:grab; border:1.5px solid var(--border); position:relative; transition:transform .15s, border-color .15s; }
+  .foto-thumb:hover { border-color:var(--accent); transform:scale(1.03); }
+  .foto-thumb img { width:100%; height:100%; object-fit:cover; display:block; cursor:zoom-in; }
+  .variacao-slot.filled img { cursor:zoom-in; }
+  .foto-thumb.dragging { opacity:0.3; }
+  .foto-thumb.usada { opacity:0.35; }
+  .foto-thumb.usada::after { content:'✓'; position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:#00000066; color:var(--success); font-size:20px; font-weight:700; }
+  .foto-thumb.enviando img { opacity:0.4; }
+  .spinner-overlay { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:20px; animation:girar 1s linear infinite; }
+  @keyframes girar { from{transform:rotate(0deg);} to{transform:rotate(360deg);} }
+  .foto-thumb .badge-capa { position:absolute; top:4px; left:4px; background:var(--accent-solid); color:white; font-size:9px; font-weight:600; padding:2px 6px; border-radius:6px; z-index:2; }
+  .variacao-card { display:flex; align-items:center; gap:14px; background:var(--surface2); border:1.5px solid var(--border); border-radius:var(--radius); padding:12px; margin-bottom:10px; transition:border-color .15s, background .15s; }
+  .variacao-card.dragover { border-color:var(--accent); background:#7c3aed22; }
+  .variacao-slot { width:64px; height:64px; border-radius:10px; border:1.5px dashed var(--border); display:flex; align-items:center; justify-content:center; flex-shrink:0; overflow:hidden; font-size:22px; color:var(--text-muted); position:relative; }
+  .variacao-slot.filled { border-style:solid; border-color:var(--success); }
+  .variacao-slot img { width:100%; height:100%; object-fit:cover; display:block; }
+  .variacao-info { flex:1; min-width:0; }
+  .variacao-nome { font-size:14px; font-weight:600; }
+  .variacao-status { font-size:11px; color:var(--text-muted); margin-top:2px; }
+  .variacao-remover { background:none; border:none; color:var(--error); font-size:18px; cursor:pointer; padding:4px 8px; flex-shrink:0; opacity:0; transition:opacity .15s; }
+  .variacao-card:has(.filled) .variacao-remover { opacity:1; }
+  .dropzone { border:2px dashed var(--border); border-radius:var(--radius); padding:28px 20px; text-align:center; cursor:pointer; position:relative; transition:border-color .15s, background .15s; }
+  .dropzone:hover { border-color:var(--accent); background:#7c3aed11; }
+  .dropzone input { position:absolute; inset:0; opacity:0; cursor:pointer; }
+  .dropzone-icon { font-size:32px; margin-bottom:8px; }
+  .dropzone-text { font-size:14px; font-weight:500; color:var(--text); }
+  .dropzone-sub { font-size:12px; color:var(--text-muted); margin-top:4px; }
+  .toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(80px); background:var(--surface2); border:1px solid var(--border); border-radius:var(--radius-sm); padding:12px 18px; font-size:13px; font-weight:500; transition:transform .3s; z-index:200; max-width:90vw; }
+  .toast.show { transform:translateX(-50%) translateY(0); }
+  .toast.success { border-color:var(--success); color:var(--success); }
+  .toast.error { border-color:var(--error); color:var(--error); }
+  .log { font-family:'DM Mono',monospace; font-size:11px; color:var(--text-muted); margin-top:10px; display:flex; flex-direction:column; gap:3px; }
+  .log-line.ok { color:var(--success); }
+  .log-line.err { color:var(--error); }
+  .modal-overlay { position:fixed; inset:0; background:#000000aa; display:flex; align-items:center; justify-content:center; z-index:500; padding:20px; }
+  .modal-overlay.hidden { display:none; }
+  .modal-box { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:24px 20px; max-width:340px; width:100%; text-align:center; }
+  .modal-icone { font-size:32px; margin-bottom:10px; }
+  .modal-titulo { font-size:16px; font-weight:600; margin-bottom:6px; }
+  .modal-mensagem { font-size:13px; color:var(--text-muted); line-height:1.5; margin-bottom:18px; }
+  .modal-btn { background:var(--accent-solid); border:none; color:white; font-size:14px; font-weight:600; padding:10px 24px; border-radius:var(--radius-sm); cursor:pointer; }
+  .seletor-overlay { position:fixed; inset:0; background:#00000088; display:flex; align-items:center; justify-content:center; z-index:550; padding:18px; }
+  .seletor-overlay.hidden { display:none; }
+  .seletor-box { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:18px; width:min(420px, 100%); max-height:82vh; box-shadow:0 20px 60px #00000088; }
+  .seletor-cabecalho { display:flex; align-items:center; gap:10px; margin-bottom:4px; }
+  .seletor-titulo { font-size:16px; font-weight:600; flex:1; }
+  .seletor-subtitulo { font-size:12px; color:var(--text-muted); margin-bottom:14px; }
+  .seletor-fechar { background:none; border:1px solid var(--border); color:var(--text-muted); font-size:16px; width:32px; height:32px; border-radius:50%; cursor:pointer; }
+  .seletor-fechar:hover { color:var(--text); border-color:var(--accent); }
+  .seletor-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; max-height:58vh; overflow-y:auto; padding:2px; }
+  .seletor-item { aspect-ratio:1; border-radius:10px; overflow:hidden; cursor:pointer; border:1.5px solid var(--border); position:relative; background:var(--surface2); }
+  .seletor-item:hover { border-color:var(--accent); transform:scale(1.02); }
+  .seletor-item img { width:100%; height:100%; object-fit:cover; display:block; }
+  .seletor-item.usada::after { content:'✓'; position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:#00000066; color:var(--success); font-size:24px; font-weight:700; }
+  .seletor-vazio { text-align:center; padding:28px 10px; color:var(--text-muted); font-size:13px; }
+  .variacao-card { cursor:pointer; }
+  .variacao-card:hover { border-color:var(--accent); }
+  .variacao-card .variacao-slot, .variacao-card .variacao-remover { cursor:pointer; }
+  .lightbox-overlay { position:fixed; inset:0; background:#000000dd; display:flex; align-items:center; justify-content:center; z-index:600; padding:24px; }
+  .lightbox-overlay.hidden { display:none; }
+  .lightbox-img { max-width:100%; max-height:85vh; border-radius:12px; box-shadow:0 20px 60px #00000088; }
+  .lightbox-fechar { position:absolute; top:20px; right:20px; background:var(--surface); border:1px solid var(--border); color:white; font-size:20px; width:40px; height:40px; border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="3" width="18" height="18" rx="3"/>
+      <circle cx="8.5" cy="8.5" r="1.5"/>
+      <polyline points="21 15 16 10 5 21"/>
+    </svg>
+  </div>
+  <div><h1>GSLFotos</h1><span>Publicar na Bagy</span></div>
+  <a href="https://drive.google.com/drive/folders/1VVVFN0QXS_lClJzdlWFVS0FO1zFP49bx?usp=sharing" target="_blank" rel="noopener" class="btn-drive">📁 Drive</a>
+</header>
+
+<main>
+
+  <div class="card" id="card-busca">
+    <div class="field-label">🏷️ Código do produto (SKU)</div>
+    <input type="text" id="sku-input" placeholder="Ex: CO00649" autocomplete="off" onkeydown="if(event.key==='Enter') buscarProduto()" />
+    <div id="historico-skus" style="display:flex; gap:6px; flex-wrap:wrap; margin-top:8px;"></div>
+    <button class="btn" id="btn-buscar" style="margin-top:12px" onclick="buscarProduto()">🔍 Buscar produto</button>
+  </div>
+
+  <div class="card" id="card-produto" style="display:none;">
+    <div class="produto-codigo" id="produto-codigo"></div>
+    <div class="produto-nome" id="produto-nome"></div>
+    <div class="produto-sub" id="produto-sub"></div>
+  </div>
+
+  <div class="card" id="card-upload" style="display:none;">
+    <div class="field-label">📸 1. Envie todas as fotos do produto</div>
+    <div class="dropzone">
+      <input type="file" id="file-input" accept="image/*" multiple />
+      <div class="dropzone-icon">🖼️</div>
+      <div class="dropzone-text">Selecionar fotos</div>
+      <div class="dropzone-sub">Toque para abrir a galeria · Múltiplas permitidas</div>
+    </div>
+    <div class="foto-pool" id="foto-pool"></div>
+  </div>
+
+  <div class="card" id="card-variacoes" style="display:none;">
+    <div class="field-label">🎨 2. Arraste cada foto para a variação certa</div>
+    <div id="variacoes-list"></div>
+  </div>
+
+  <button class="btn" id="btn-publicar" style="display:none;" onclick="publicar()">🚀 Publicar na Bagy</button>
+
+  <div class="card" id="card-log" style="display:none;">
+    <div class="field-label">✅ Resultado</div>
+    <div class="log" id="log"></div>
+  </div>
+
+</main>
+
+<div class="modal-overlay hidden" id="modal-overlay" onclick="if(event.target===this) fecharModal()">
+  <div class="modal-box">
+    <div class="modal-icone">⚠️</div>
+    <div class="modal-titulo" id="modal-titulo">Produto não encontrado</div>
+    <div class="modal-mensagem" id="modal-mensagem"></div>
+    <button class="modal-btn" onclick="fecharModal()">Entendi</button>
+  </div>
+</div>
+
+<div class="seletor-overlay hidden" id="seletor-overlay" onclick="if(event.target===this) fecharSeletorFoto()">
+  <div class="seletor-box">
+    <div class="seletor-cabecalho">
+      <div class="seletor-titulo" id="seletor-titulo">Escolher foto</div>
+      <button class="seletor-fechar" onclick="fecharSeletorFoto()">✕</button>
+    </div>
+    <div class="seletor-subtitulo">Clique em uma foto enviada para atribuí-la a esta variação.</div>
+    <div class="seletor-grid" id="seletor-grid"></div>
+  </div>
+</div>
+
+<div class="lightbox-overlay hidden" id="lightbox-overlay" onclick="if(event.target===this) fecharLightbox()">
+  <button class="lightbox-fechar" onclick="fecharLightbox()">✕</button>
+  <img class="lightbox-img" id="lightbox-img" src="" alt="Prévia da foto" />
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  const BACKEND_URL = 'https://gsnfotos-v3.onrender.com';
+
+  // Captura qualquer erro JS não tratado e mostra no modal — sem
+  // isso, um erro "silencioso" só aparece no console (que a
+  // maioria das pessoas não abre), dificultando saber o que houve.
+  window.addEventListener('error', e => {
+    mostrarModal('Erro inesperado', (e.message || 'Erro desconhecido') + ' (linha ' + e.lineno + ')');
+  });
+  window.addEventListener('unhandledrejection', e => {
+    mostrarModal('Erro inesperado', e.reason?.message || String(e.reason));
+  });
+
+  let skuAtual = null;
+  let dadosBagy = null;   // { produto: {id, nome, codigo}, variacoes: [{id, codigo, nome, fotoAtual}] }
+  let vinculos = {};      // color_id -> foto_url (nova, escolhida pelo usuário)
+  let fotosExistentesId = {}; // color_id -> id da imagem já cadastrada na Bagy (se houver)
+  let todosOsIdsPorVariacao = {}; // color_id -> array de TODOS os IDs de foto existentes (produto simples pode ter mais de uma)
+  let nomesPorVariacao = {}; // color_id -> nome da cor (para o resultado e para o nome no Drive)
+  let imgPorVariacao = {}; // color_id -> miniatura escolhida (para restaurar se a publicação falhar)
+  let ordemVariacoesAtual = []; // ordem de exibição das variações — usada para decidir qual vira "capa"
+  let contadorFoto = 0;
+  const cacheDeBuscas = new Map(); // sku -> resposta já buscada nesta sessão
+
+  // Histórico dos últimos SKUs buscados, salvo entre sessões
+  // (localStorage) — facilita revisitar o mesmo produto sem
+  // redigitar o código toda vez.
+  const LIMITE_HISTORICO = 5;
+  function carregarHistorico() {
+    try { return JSON.parse(localStorage.getItem('gsnfotos_historico') || '[]'); }
+    catch { return []; }
+  }
+  function salvarNoHistorico(sku) {
+    let historico = carregarHistorico().filter(s => s !== sku);
+    historico.unshift(sku);
+    historico = historico.slice(0, LIMITE_HISTORICO);
+    localStorage.setItem('gsnfotos_historico', JSON.stringify(historico));
+    renderHistorico();
+  }
+  function renderHistorico() {
+    const container = document.getElementById('historico-skus');
+    const historico = carregarHistorico();
+    container.innerHTML = historico.map(sku =>
+      `<span class="chip-historico" onclick="document.getElementById('sku-input').value='${sku}'; buscarProduto();">${sku}</span>`
+    ).join('');
+  }
+  renderHistorico();
+
+  // Aquece o backend assim que a página abre — se o Render estiver
+  // "dormindo" (plano gratuito), ele começa a acordar enquanto o
+  // usuário ainda está digitando o SKU, ganhando alguns segundos
+  // antes da busca de verdade acontecer.
+  fetch(`${BACKEND_URL}/health`).catch(() => {});
+
+  async function buscarProduto() {
+    const sku = document.getElementById('sku-input').value.trim();
+    if (!sku) return;
+
+    const btn = document.getElementById('btn-buscar');
+    btn.disabled = true;
+    btn.textContent = 'Buscando...';
+
+    try {
+      let data;
+      if (cacheDeBuscas.has(sku)) {
+        // Já buscamos esse SKU nesta sessão — evita nova chamada
+        // à Bagy. Esse cache é limpo automaticamente depois de
+        // publicar uma foto nesse SKU (ver função publicar()).
+        data = cacheDeBuscas.get(sku);
+      } else {
+        const res = await fetch(`${BACKEND_URL}/produto/${encodeURIComponent(sku)}?plataformas=bagy`);
+        data = await res.json();
+        if (data.bagy) cacheDeBuscas.set(sku, data);
+      }
+
+      if (!data.bagy) {
+        // Filtra qualquer menção ao Bling — este frontend só
+        // trabalha com a Bagy, não faz sentido o usuário ver
+        // erro de uma plataforma que nem está em uso aqui.
+        const errosBagy = (data.erros || []).filter(e => !e.toLowerCase().includes('bling'));
+        throw new Error(errosBagy.join(' ') || 'Produto não encontrado na Bagy.');
+      }
+
+      skuAtual = sku;
+      dadosBagy = data.bagy;
+      vinculos = {};
+      fotosExistentesId = {};
+      todosOsIdsPorVariacao = {};
+      nomesPorVariacao = {};
+      imgPorVariacao = {};
+      document.getElementById('foto-pool').innerHTML = '';
+      contadorFoto = 0;
+      salvarNoHistorico(sku.toUpperCase());
+
+      document.getElementById('produto-codigo').textContent = (dadosBagy.produto.codigo || sku).toUpperCase();
+      document.getElementById('produto-nome').textContent = dadosBagy.produto.nome;
+
+      const totalVariacoes = dadosBagy.variacoes?.length || 0;
+      document.getElementById('produto-sub').textContent = totalVariacoes > 0
+        ? `${totalVariacoes} variação(ões)`
+        : 'Produto simples (sem variações) — foto vai direto nele';
+
+      renderVariacoes();
+
+      document.getElementById('card-produto').style.display = 'block';
+      document.getElementById('card-upload').style.display = 'block';
+      document.getElementById('card-variacoes').style.display = 'block';
+      document.getElementById('btn-publicar').style.display = 'block';
+      document.getElementById('card-log').style.display = 'none';
+
+    } catch (e) {
+      // Esconde qualquer resultado anterior — evita confusão se o
+      // usuário buscar um SKU errado depois de um SKU válido
+      document.getElementById('card-produto').style.display = 'none';
+      document.getElementById('card-upload').style.display = 'none';
+      document.getElementById('card-variacoes').style.display = 'none';
+      document.getElementById('btn-publicar').style.display = 'none';
+      mostrarModal('Produto não encontrado', e.message);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = '🔍 Buscar produto';
+    }
+  }
+
+  function abrirLightbox(urlImagem) {
+    document.getElementById('lightbox-img').src = urlImagem;
+    document.getElementById('lightbox-overlay').classList.remove('hidden');
+  }
+
+  function fecharLightbox() {
+    document.getElementById('lightbox-overlay').classList.add('hidden');
+  }
+
+  function mostrarModal(titulo, mensagem) {
+    document.getElementById('modal-titulo').textContent = titulo;
+    document.getElementById('modal-mensagem').textContent = mensagem;
+    document.getElementById('modal-overlay').classList.remove('hidden');
+  }
+
+  function fecharModal() {
+    document.getElementById('modal-overlay').classList.add('hidden');
+  }
+
+  let variacaoSelecionadaParaFoto = null;
+
+  function abrirSeletorFoto(variacaoId, nomeVariacao) {
+    variacaoSelecionadaParaFoto = variacaoId;
+
+    const grid = document.getElementById('seletor-grid');
+    const titulo = document.getElementById('seletor-titulo');
+    const fotos = Array.from(document.querySelectorAll('.foto-thumb'))
+      .filter(el => el.dataset.url && !el.classList.contains('enviando'));
+
+    titulo.textContent = nomeVariacao
+      ? `Escolher foto — ${nomeVariacao}`
+      : 'Escolher foto';
+
+    grid.innerHTML = '';
+
+    if (!fotos.length) {
+      grid.innerHTML = '<div class="seletor-vazio">Nenhuma foto enviada ainda.<br>Envie as fotos acima primeiro.</div>';
+    } else {
+      fotos.forEach(thumb => {
+        const item = document.createElement('div');
+        item.className = 'seletor-item';
+        item.dataset.fotoId = thumb.id;
+        item.title = 'Usar esta foto';
+
+        const img = thumb.querySelector('img');
+        item.innerHTML = `<img src="${img.src}" alt="Foto disponível">`;
+
+        // Mantém a mesma lógica visual usada no arrastar:
+        // se a foto já estiver vinculada a alguma variação, mostra ✓.
+        if (Object.values(vinculos).includes(thumb.dataset.url)) {
+          item.classList.add('usada');
+        }
+
+        item.addEventListener('click', () => {
+          selecionarFotoParaVariacao(
+            variacaoSelecionadaParaFoto,
+            thumb.dataset.url,
+            img.src,
+            thumb.id
+          );
+        });
+
+        grid.appendChild(item);
+      });
+    }
+
+    document.getElementById('seletor-overlay').classList.remove('hidden');
+  }
+
+  function fecharSeletorFoto() {
+    document.getElementById('seletor-overlay').classList.add('hidden');
+    variacaoSelecionadaParaFoto = null;
+  }
+
+  function selecionarFotoParaVariacao(variacaoId, fotoUrl, fotoImg, fotoId) {
+    // variacaoId pode ser null de propósito (produto sem variação,
+    // ver comentário em publicar()) — só bloqueia undefined, que
+    // indicaria uma chamada indevida da função.
+    if (variacaoId === undefined) return;
+
+    const slot = document.getElementById(`slot-${variacaoId}`);
+    const status = document.getElementById(`status-${variacaoId}`);
+
+    if (!slot || !status) {
+      fecharSeletorFoto();
+      return;
+    }
+
+    preencherSlot(variacaoId, fotoUrl, fotoImg);
+    marcarFotoComoUsada(fotoId);
+
+    fecharSeletorFoto();
+    showToast('Foto atribuída à variação.', 'success');
+  }
+
+  // Vincula uma foto a uma variação e atualiza o quadrinho dela.
+  // Usado ao escolher pelo seletor, ao arrastar e ao restaurar as
+  // variações que falharam na publicação.
+  function preencherSlot(variacaoId, fotoUrl, fotoImg) {
+    const slot = document.getElementById(`slot-${variacaoId}`);
+    const status = document.getElementById(`status-${variacaoId}`);
+    if (!slot || !status) return;
+
+    vinculos[variacaoId] = fotoUrl;
+    imgPorVariacao[variacaoId] = fotoImg;
+    slot.classList.add('filled');
+    slot.innerHTML = `<img src="${fotoImg}" alt="Foto da variação" />`;
+    slot.querySelector('img').addEventListener('click', e => {
+      e.stopPropagation();
+      abrirLightbox(fotoImg);
+    });
+    status.textContent = 'Foto atribuída';
+    // Atualiza o ✓ de todas as fotos — ao trocar a foto de uma
+    // variação, a anterior deixa de aparecer como "usada".
+    atualizarUsoDasFotos();
+  }
+
+  function renderVariacoes() {
+    const lista = document.getElementById('variacoes-list');
+    lista.innerHTML = '';
+
+    const alvosBrutos = dadosBagy.variacoes?.length
+      ? dadosBagy.variacoes
+      : [{ id: dadosBagy.produto.id, codigo: dadosBagy.produto.codigo, nome: 'Produto (sem variação)' }];
+
+    // Agrupa variações que compartilham o mesmo "id" (color_id).
+    // Isso acontece com anéis (Prata 17, Prata 18, Prata 19 — mesma
+    // cor, tamanhos diferentes) que usam a mesma foto. Sem agrupar,
+    // cada uma viraria um elemento HTML com ID duplicado, causando
+    // comportamento errático (fotos indo pro lugar errado,
+    // listeners de evento se sobrescrevendo).
+    const agrupadas = new Map();
+    alvosBrutos.forEach(v => {
+      // Normaliza o id como texto: se a Bagy devolver o mesmo
+      // color_id às vezes como número (123) e às vezes como texto
+      // ("123"), sem essa normalização o Map trata como duas
+      // variações diferentes — cada uma vira uma publicação
+      // separada e a Bagy acaba com 2 fotos na mesma variação.
+      const chave = (v.id !== null && v.id !== undefined) ? String(v.id) : `sem-id-${v.codigo}`;
+      if (!agrupadas.has(chave)) {
+        agrupadas.set(chave, { ...v, codigosAgrupados: [v.codigo] });
+      } else {
+        agrupadas.get(chave).codigosAgrupados.push(v.codigo);
+      }
+    });
+    const alvos = Array.from(agrupadas.values());
+    ordemVariacoesAtual = alvos.map(v => v.id);
+
+    alvos.forEach(v => {
+      const row = document.createElement('div');
+      row.className = 'variacao-card';
+      row.dataset.variacaoId = v.id;
+
+      // Se a variação representa mais de um tamanho/código (ex:
+      // anéis agrupados), mostra isso no nome, pra ficar claro
+      // que uma foto só serve pra todos eles.
+      const nomeExibido = v.codigosAgrupados.length > 1
+        ? `${v.nome} (${v.codigosAgrupados.length} tamanhos)`
+        : v.nome;
+
+      const temFotoExistente = !!v.fotoAtual;
+      nomesPorVariacao[v.id] = v.nome || v.codigo;
+      if (v.fotoAtualId) fotosExistentesId[v.id] = v.fotoAtualId;
+      if (v.todosOsFotoAtualIds?.length) todosOsIdsPorVariacao[v.id] = v.todosOsFotoAtualIds;
+      const slotConteudo = temFotoExistente ? `<img src="${v.fotoAtual}" />` : '＋';
+      const statusInicial = temFotoExistente
+        ? 'Foto atual (arraste para substituir)'
+        : 'Arraste uma foto aqui';
+
+      row.innerHTML = `
+        <div class="variacao-slot ${temFotoExistente ? 'filled' : ''}" id="slot-${v.id}">${slotConteudo}</div>
+        <div class="variacao-info">
+          <div class="variacao-nome">${nomeExibido || v.codigo}</div>
+          <div class="variacao-status" id="status-${v.id}">${statusInicial}</div>
+        </div>
+        <button class="variacao-remover" onclick="event.stopPropagation(); removerFotoDaVariacao('${v.id}')" title="Remover">✕</button>
+      `;
+
+      // Além do arrastar, toda a área da variação abre o seletor de fotos.
+      row.addEventListener('click', e => {
+        if (e.target.closest('.variacao-remover')) return;
+        abrirSeletorFoto(v.id, nomeExibido || v.codigo);
+      });
+      if (temFotoExistente) {
+        row.querySelector('.variacao-slot img').addEventListener('click', e => {
+          e.stopPropagation();
+          abrirLightbox(v.fotoAtual);
+        });
+      }
+      row.addEventListener('dragover', e => { e.preventDefault(); row.classList.add('dragover'); });
+      row.addEventListener('dragleave', () => row.classList.remove('dragover'));
+      row.addEventListener('drop', e => {
+        e.preventDefault();
+        row.classList.remove('dragover');
+        const fotoUrl = e.dataTransfer.getData('text/foto-url');
+        const fotoImg = e.dataTransfer.getData('text/foto-img');
+        const fotoId = e.dataTransfer.getData('text/foto-id');
+        if (!fotoUrl) return;
+
+        preencherSlot(v.id, fotoUrl, fotoImg);
+        marcarFotoComoUsada(fotoId);
+      });
+      lista.appendChild(row);
+    });
+  }
+
+  function removerFotoDaVariacao(variacaoId) {
+    delete vinculos[variacaoId];
+    const slot = document.getElementById(`slot-${variacaoId}`);
+    slot.classList.remove('filled');
+    slot.innerHTML = '＋';
+    document.getElementById(`status-${variacaoId}`).textContent = 'Arraste uma foto aqui';
+    atualizarUsoDasFotos();
+  }
+
+  function marcarFotoComoUsada(fotoId) {
+    if (!fotoId) return;
+    const el = document.getElementById(`foto-${fotoId}`);
+    if (el) el.classList.add('usada');
+  }
+
+  function atualizarUsoDasFotos() {
+    const emUso = new Set(Object.values(vinculos));
+    document.querySelectorAll('.foto-thumb').forEach(el => {
+      el.classList.toggle('usada', emUso.has(el.dataset.url));
+    });
+  }
+
+  document.getElementById('file-input').addEventListener('change', async function(e) {
+    const files = Array.from(e.target.files);
+    if (!files.length || !skuAtual) return;
+
+    // Mostra a miniatura de cada foto IMEDIATAMENTE (com um
+    // indicador de "enviando"), sem esperar o upload terminar —
+    // dá feedback visual instantâneo em vez de uma pausa em
+    // branco até o lote inteiro voltar do servidor.
+    const thumbsPendentes = files.map(file => {
+      const localUrl = URL.createObjectURL(file);
+      return adicionarFotoNoPool(null, localUrl, true); // true = pendente
+    });
+
+    // Reduz cada foto no próprio aparelho antes de enviar (ver
+    // prepararFotoParaEnvio) — o envio fica bem mais rápido.
+    const fotosPreparadas = await Promise.all(files.map(prepararFotoParaEnvio));
+
+    const form = new FormData();
+    form.append('sku', skuAtual);
+    fotosPreparadas.forEach(f => form.append('fotos', f));
+
+    try {
+      const res = await fetch(`${BACKEND_URL}/upload-temporario`, { method: 'POST', body: form });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+
+      // Atualiza cada miniatura pendente com a URL pública real,
+      // removendo o indicador de "enviando"
+      data.fotos.forEach((foto, i) => {
+        const thumb = thumbsPendentes[i];
+        if (thumb) confirmarUploadDaMiniatura(thumb, foto.url);
+      });
+    } catch (err) {
+      // Remove as miniaturas que falharam, para não deixar "presas"
+      thumbsPendentes.forEach(thumb => thumb?.remove());
+      showToast(err.message, 'error');
+    }
+  });
+
+  // O servidor nunca usa mais que 2000px (limite final da Bagy é
+  // 350KB). Então reduzir para 2000px AQUI, com qualidade 95%, não
+  // muda a foto final — só evita subir 5 a 10 MB por foto pela
+  // internet. Se algo der errado, envia a foto original.
+  const LADO_MAXIMO_ENVIO = 2000;
+  const QUALIDADE_ENVIO = 0.95;
+  const TAMANHO_DISPENSA_REDUCAO = 1.5 * 1024 * 1024; // fotos menores que 1,5MB vão como estão
+
+  async function prepararFotoParaEnvio(file) {
+    try {
+      if (file.size <= TAMANHO_DISPENSA_REDUCAO) return file;
+      // imageOrientation: respeita a posição em que a foto foi tirada
+      const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
+      const escala = Math.min(1, LADO_MAXIMO_ENVIO / Math.max(bitmap.width, bitmap.height));
+      const largura = Math.round(bitmap.width * escala);
+      const altura = Math.round(bitmap.height * escala);
+
+      const canvas = document.createElement('canvas');
+      canvas.width = largura;
+      canvas.height = altura;
+      const ctx = canvas.getContext('2d');
+      ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(bitmap, 0, 0, largura, altura);
+      bitmap.close?.();
+
+      const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', QUALIDADE_ENVIO));
+      if (!blob || blob.size >= file.size) return file;
+      const nome = file.name.replace(/\.[^.]+$/, '') + '.jpg';
+      return new File([blob], nome, { type: 'image/jpeg' });
+    } catch (err) {
+      console.warn('Não foi possível reduzir a foto, enviando original:', err);
+      return file;
+    }
+  }
+
+  function adicionarFotoNoPool(urlPublica, urlLocal, pendente = false) {
+    const fotoId = `f${++contadorFoto}`;
+    const pool = document.getElementById('foto-pool');
+    const ehPrimeira = pool.children.length === 0;
+    const thumb = document.createElement('div');
+    thumb.className = 'foto-thumb' + (pendente ? ' enviando' : '');
+    thumb.id = `foto-${fotoId}`;
+    thumb.dataset.url = urlPublica || '';
+    // Enquanto pendente, não pode ser arrastada — evita vincular
+    // uma foto que ainda não terminou de subir de verdade.
+    thumb.draggable = !pendente;
+    thumb.innerHTML = `
+      ${ehPrimeira ? '<span class="badge-capa">suas fotos</span>' : ''}
+      <img src="${urlLocal}" />
+      ${pendente ? '<div class="spinner-overlay">⏳</div>' : ''}
+    `;
+    thumb.querySelector('img').addEventListener('click', e => {
+      e.stopPropagation();
+      if (!pendente) abrirLightbox(urlLocal);
+    });
+    thumb.addEventListener('dragstart', e => {
+      thumb.classList.add('dragging');
+      e.dataTransfer.setData('text/foto-url', thumb.dataset.url);
+      e.dataTransfer.setData('text/foto-img', urlLocal);
+      e.dataTransfer.setData('text/foto-id', fotoId);
+    });
+    thumb.addEventListener('dragend', () => thumb.classList.remove('dragging'));
+    pool.appendChild(thumb);
+    return thumb;
+  }
+
+  // Chamada quando o upload de uma miniatura pendente termina —
+  // remove o indicador de "enviando" e libera o drag-and-drop.
+  function confirmarUploadDaMiniatura(thumb, urlPublica) {
+    thumb.dataset.url = urlPublica;
+    thumb.draggable = true;
+    thumb.classList.remove('enviando');
+    const overlay = thumb.querySelector('.spinner-overlay');
+    if (overlay) overlay.remove();
+    thumb.querySelector('img').addEventListener('click', e => {
+      e.stopPropagation();
+      abrirLightbox(thumb.querySelector('img').src);
+    });
+  }
+
+  let publicandoAgora = false; // trava contra clique duplo/duplo disparo do evento
+
+  async function publicar() {
+    // Se já tem uma publicação em andamento, ignora esse novo
+    // disparo — evita que a mesma variação seja enviada 2x pra
+    // Bagy (o que aparecia lá como foto duplicada).
+    if (publicandoAgora) return;
+    publicandoAgora = true;
+
+    // A Bagy precisa do ID do produto junto com o color_id (a
+    // variação em si não tem um ID isolado do lado da API deles)
+    // Quando a variação é "id: null" (produto simples, sem cor),
+    // o JS transforma isso na chave de string "null" dentro do
+    // objeto — convertemos de volta para null de verdade aqui,
+    // senão o backend recebe a string "null" por engano.
+    //
+    // Object.entries(vinculos) já garante 1 entrada por color_id
+    // (chave de objeto é única por definição) — então se ainda
+    // assim aparecer duplicidade na Bagy, ela não vem daqui; ver
+    // trava "publicandoAgora" acima e o "finally" abaixo.
+    const bagy = Object.entries(vinculos).map(([color_id, foto_url]) => {
+      const idReal = color_id === 'null' ? null : color_id;
+      // A ÚLTIMA variação da lista sempre vira a capa (position 1)
+      // — isso garante uma ordem previsível mesmo com as
+      // publicações rodando em paralelo (não depende de "quem
+      // termina primeiro").
+      const indiceNaLista = ordemVariacoesAtual.findIndex(id => String(id) === String(idReal));
+      const posicao = indiceNaLista === -1
+        ? null
+        : ordemVariacoesAtual.length - indiceNaLista;
+
+      return {
+        produto_id: dadosBagy?.produto?.id,
+        color_id: idReal,
+        foto_url,
+        imagem_existente_id: fotosExistentesId[color_id] || null,
+        todos_os_ids_para_excluir: todosOsIdsPorVariacao[color_id] || null,
+        posicao,
+        // Usados pelo backend para renomear a foto no Drive com o
+        // nome da variação. Produto simples (sem cor) fica só com o SKU.
+        sku: skuAtual,
+        nome_variacao: idReal === null ? null : (nomesPorVariacao[color_id] || null),
+        chave: color_id, // chave original em "vinculos" (não vai pra Bagy; uso interno)
+      };
+    });
+
+    if (!bagy.length) {
+      showToast('Vincule ao menos uma foto antes de publicar.', 'error');
+      publicandoAgora = false; // libera a trava, senão o botão "morre" até recarregar a página
+      return;
+    }
+
+    const btn = document.getElementById('btn-publicar');
+    btn.disabled = true;
+    btn.textContent = '⏳ Publicando...';
+
+    try {
+      const res = await fetch(`${BACKEND_URL}/publicar`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bagy }),
+      });
+      const data = await res.json();
+      const resultados = data.resultados?.bagy || [];
+
+      mostrarLog(resultados, bagy);
+      // Variações que deram erro (ou sem resposta) continuam com a
+      // foto vinculada depois de recarregar, para tentar de novo.
+      const falhas = bagy
+        .filter((item, i) => !resultados[i] || resultados[i].error)
+        .map(item => ({ chave: item.chave, url: item.foto_url, img: imgPorVariacao[item.chave] }));
+
+      showToast(falhas.length
+        ? `${falhas.length} variação(ões) com erro — veja abaixo e publique de novo`
+        : 'Publicação concluída — veja o resultado abaixo', falhas.length ? 'error' : 'success');
+      // Invalida o cache desse SKU — a próxima busca deve trazer
+      // os dados atualizados (novas fotos), não os antigos salvos.
+      cacheDeBuscas.delete(skuAtual);
+
+      // Recarrega as variações com os dados ATUAIS da Bagy. Sem isso,
+      // os vínculos e os IDs das fotos antigas (já excluídas) ficavam
+      // na tela — e um novo clique em "Publicar" reenviava as mesmas
+      // variações, criando fotos duplicadas.
+      await recarregarVariacoes(falhas);
+
+    } catch (e) {
+      showToast(e.message, 'error');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = '🚀 Publicar na Bagy';
+      publicandoAgora = false;
+    }
+  }
+
+  // Busca o produto de novo (sem cache) e redesenha as variações,
+  // zerando os vínculos. As fotos já enviadas continuam no pool,
+  // para poderem ser usadas em outras variações.
+  async function recarregarVariacoes(falhas = []) {
+    vinculos = {};
+    fotosExistentesId = {};
+    todosOsIdsPorVariacao = {};
+    nomesPorVariacao = {};
+    imgPorVariacao = {};
+    try {
+      const res = await fetch(`${BACKEND_URL}/produto/${encodeURIComponent(skuAtual)}?plataformas=bagy`);
+      const data = await res.json();
+      if (!data.bagy) throw new Error('Produto não retornado pela Bagy.');
+      cacheDeBuscas.set(skuAtual, data);
+      dadosBagy = data.bagy;
+      renderVariacoes();
+      // Os IDs das fotos já vêm atualizados da Bagy, então republicar
+      // essas variações é seguro (não duplica).
+      falhas.forEach(f => { if (f.url && f.img) preencherSlot(f.chave, f.url, f.img); });
+    } catch (e) {
+      // Sem os dados atuais não dá pra publicar com segurança —
+      // esconde o botão até o usuário buscar o produto de novo.
+      document.getElementById('btn-publicar').style.display = 'none';
+      showToast('Publicado, mas não foi possível atualizar a tela. Busque o produto novamente antes de publicar outra vez.', 'error');
+    }
+    atualizarUsoDasFotos();
+  }
+
+  // Os resultados voltam na mesma ordem dos itens enviados — por
+  // isso dá pra mostrar o nome de cada variação ao lado.
+  function mostrarLog(resultadosBagy, enviados) {
+    const card = document.getElementById('card-log');
+    const log = document.getElementById('log');
+    log.innerHTML = '';
+    card.style.display = 'block';
+
+    enviados.forEach((item, i) => {
+      const r = resultadosBagy[i];
+      const nome = nomesPorVariacao[item.chave] || 'Produto';
+      const linha = document.createElement('div');
+      const ok = r && !r.error;
+      linha.className = `log-line ${ok ? 'ok' : 'err'}`;
+      linha.textContent = ok
+        ? `✓ ${nome} — publicada`
+        : `✗ ${nome} — ${r?.error || 'sem resposta do servidor'}`;
+      log.appendChild(linha);
+    });
+  }
+
+  let toastTimer;
+  function showToast(msg, type) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = `toast show ${type}`;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 4000);
+  }
+  // Esc fecha o lightbox ou o modal, o que estiver aberto
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Escape') return;
+    if (!document.getElementById('lightbox-overlay').classList.contains('hidden')) fecharLightbox();
+    else if (!document.getElementById('seletor-overlay').classList.contains('hidden')) fecharSeletorFoto();
+    else if (!document.getElementById('modal-overlay').classList.contains('hidden')) fecharModal();
+  });
+</script>
+
+</body>
+</html>
