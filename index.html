@@ -310,18 +310,23 @@
   // o servidor nunca usa mais que isso. Fotos até 1,5MB vão como estão.
   async function prepararFoto(file) {
     try {
-      if (file.size <= 1.5 * 1024 * 1024) return file;
+      // JPEG pequeno vai como está. Outros formatos (PNG colado, WEBP
+      // arrastado de outra aba…) sempre viram JPEG, como o resto do fluxo.
+      const ehJpeg = file.type === 'image/jpeg';
+      if (ehJpeg && file.size <= 1.5 * 1024 * 1024) return file;
       const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
       const escala = Math.min(1, 2000 / Math.max(bitmap.width, bitmap.height));
       const canvas = document.createElement('canvas');
       canvas.width = Math.round(bitmap.width * escala);
       canvas.height = Math.round(bitmap.height * escala);
       const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#FFFFFF'; // fundo branco no lugar da transparência
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
       ctx.imageSmoothingQuality = 'high';
       ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
       bitmap.close?.();
       const blob = await new Promise(r => canvas.toBlob(r, 'image/jpeg', 0.95));
-      if (!blob || blob.size >= file.size) return file;
+      if (!blob || (ehJpeg && blob.size >= file.size)) return file;
       return new File([blob], file.name.replace(/\.[^.]+$/, '') + '.jpg', { type: 'image/jpeg' });
     } catch { return file; }
   }
@@ -673,6 +678,46 @@
     ev.preventDefault();
     abrirProduto(new FormData(ev.target).get('sku'));
   });
+  // ── Fotos arrastadas (de outra aba ou de uma pasta) e coladas ───
+  // Entram como se fossem escolhidas no "Adicionar". Só na tela do
+  // produto; o visual não muda.
+  function imagensDe(lista) {
+    return Array.from(lista || []).filter(f => f && f.type && f.type.startsWith('image/'));
+  }
+  async function imagemDoLink(url) {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error();
+    const blob = await res.blob();
+    if (!blob.type.startsWith('image/')) throw new Error();
+    const nome = (url.split('?')[0].split('/').pop() || 'imagem').slice(0, 60);
+    return new File([blob], nome, { type: blob.type });
+  }
+  function receberImagens(files) {
+    if (E.tela !== 'produto' || !E.dados) return avisar('Abra um produto antes de adicionar fotos.', 'erro');
+    if (files.length) adicionarFotos(files);
+  }
+  const ehArrastoExterno = ev => Array.from(ev.dataTransfer?.types || []).some(t => t === 'Files' || t === 'text/uri-list' || t === 'text/html');
+  document.addEventListener('dragover', ev => { if (ehArrastoExterno(ev)) { ev.preventDefault(); ev.dataTransfer.dropEffect = 'copy'; } });
+  document.addEventListener('drop', async ev => {
+    if (!ehArrastoExterno(ev)) return;
+    ev.preventDefault(); // não deixa o navegador abrir a imagem no lugar do site
+    const arquivos = imagensDe(ev.dataTransfer.files);
+    if (arquivos.length) return receberImagens(arquivos);
+    // Imagem arrastada de outra aba: às vezes chega só o link dela.
+    const html = ev.dataTransfer.getData('text/html');
+    const url = (html.match(/<img[^>]+src="([^"]+)"/i)?.[1] || ev.dataTransfer.getData('text/uri-list').split('\n').find(l => l && !l.startsWith('#')) || '').trim();
+    if (!url) return;
+    try { receberImagens([await imagemDoLink(url)]); }
+    catch { avisar('Esse site não deixa copiar a imagem. Salve a foto e use o Adicionar, ou copie e cole (Ctrl+V).', 'erro'); }
+  });
+  document.addEventListener('paste', ev => {
+    if (ev.target.closest?.('input')) return; // colar texto no campo do SKU continua normal
+    const arquivos = imagensDe(Array.from(ev.clipboardData?.items || []).filter(i => i.kind === 'file').map(i => i.getAsFile()));
+    if (!arquivos.length) return;
+    ev.preventDefault();
+    receberImagens(arquivos);
+  });
+
   document.addEventListener('change', ev => {
     if (ev.target.dataset.input !== 'fotos') return;
     adicionarFotos(Array.from(ev.target.files || []));
